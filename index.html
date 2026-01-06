@@ -6,12 +6,12 @@
   <title>Tabungan • Grafik</title>
 
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="./https://zxfathn.github.io/tabungan-web/style.css" />
+  <link rel="stylesheet" href="https://zxfathn.github.io/tabungan-web/style.css" />
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Chart.js (line chart biasa) -->
+  <!-- Chart.js LINE (AMAN) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
@@ -19,25 +19,27 @@
 <header>
   <div class="wrap topbar">
     <div>
-      <div class="brand">🏦 Tabungan (Grafik)</div>
+      <div class="brand">🏦 Tabungan</div>
       <div id="who" class="muted"></div>
     </div>
-    <button id="btnLogout" class="btn" style="display:none;max-width:160px" type="button">Logout</button>
+    <button id="btnLogout" class="btn" style="display:none;max-width:160px">Logout</button>
   </div>
 </header>
 
 <main class="wrap">
+  <!-- LOGIN -->
   <section id="loginBox" class="card">
-    <h3 class="mt0">Login / Daftar</h3>
-    <input id="email" placeholder="email" />
-    <input id="password" type="password" placeholder="password" />
-    <div class="grid mt10">
-      <button id="btnDaftar" class="btn" type="button">Daftar</button>
-      <button id="btnLogin" class="btn" type="button">Login</button>
+    <h3>Login / Daftar</h3>
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <div class="grid">
+      <button id="btnDaftar" class="btn">Daftar</button>
+      <button id="btnLogin" class="btn">Login</button>
     </div>
-    <div id="msg" class="muted mt10"></div>
+    <div id="msg" class="muted"></div>
   </section>
 
+  <!-- APP -->
   <section id="app" style="display:none">
     <div class="grid3">
       <div class="card"><div class="muted">Saldo</div><div id="saldo" class="big">Rp 0</div></div>
@@ -46,8 +48,8 @@
     </div>
 
     <div class="grid">
-      <button id="btnMasuk" class="btn-in" type="button">+ Uang Masuk</button>
-      <button id="btnKeluar" class="btn-out" type="button">- Uang Keluar</button>
+      <button id="btnMasuk" class="btn-in">+ Uang Masuk</button>
+      <button id="btnKeluar" class="btn-out">- Uang Keluar</button>
     </div>
 
     <div class="card">
@@ -55,39 +57,23 @@
         <option>Uang Masuk</option>
         <option>Uang Keluar</option>
       </select>
-      <input id="jumlah" type="number" inputmode="numeric" placeholder="jumlah" class="mt10" />
-      <input id="catatan" placeholder="catatan (opsional)" class="mt10" />
-      <button id="btnSimpan" class="btn mt10" type="button">Simpan</button>
-      <div id="err" class="muted mt8"></div>
+      <input id="jumlah" type="number" placeholder="Jumlah">
+      <button id="btnSimpan" class="btn">Simpan</button>
+      <div id="err" class="muted"></div>
     </div>
 
     <div class="card">
-      <div class="chartHead">
-        <h3 class="mt0">Grafik Saldo</h3>
-        <div class="controls">
-          <select id="range" style="max-width:200px">
-            <option value="30s">Range: 30 detik</option>
-            <option value="15m" selected>Range: 15 menit</option>
-            <option value="1d">Range: 1 hari</option>
-            <option value="all">Range: Semua</option>
-          </select>
-          <button id="btnCek" class="btn" type="button" style="max-width:200px">Cek Data Waktu</button>
-        </div>
-      </div>
-
+      <h3>Grafik Saldo</h3>
+      <select id="range">
+        <option value="all">Semua</option>
+        <option value="30s">30 Detik</option>
+        <option value="15m">15 Menit</option>
+        <option value="1d">1 Hari</option>
+      </select>
       <div class="chartWrap">
         <canvas id="chart"></canvas>
       </div>
-
-      <div id="hint" class="muted mt8"></div>
-    </div>
-
-    <div class="card">
-      <h3 class="mt0">Riwayat</h3>
-      <table>
-        <thead><tr><th>Waktu</th><th>Jenis</th><th>Jumlah</th></tr></thead>
-        <tbody id="list"></tbody>
-      </table>
+      <div id="hint" class="muted"></div>
     </div>
   </section>
 </main>
