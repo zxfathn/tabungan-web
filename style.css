@@ -1,18 +1,20 @@
 :root{
   --green:#22c55e;
   --red:#ef4444;
+  --blue:#3b82f6;
 
   --text:#f4f6fb;
   --muted:#aab0c0;
 
   --glass:rgba(15,18,30,.75);
-  --glass-strong:rgba(10,12,22,.85);
+  --glass-strong:rgba(10,12,22,.88);
   --line:rgba(255,255,255,.12);
 }
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 
+/* ===== BACKGROUND ===== */
 body{
   font-family:system-ui,Arial;
   color:var(--text);
@@ -24,26 +26,44 @@ body{
   background-attachment:fixed;
 }
 
+/* ===== LAYOUT ===== */
 .wrap{max-width:1000px;margin:auto;padding:16px}
 
 header{
-  position:sticky;top:0;z-index:10;
+  position:sticky;
+  top:0;
+  z-index:10;
   background:rgba(5,8,20,.75);
   backdrop-filter:blur(12px);
   border-bottom:1px solid var(--line);
 }
 
-.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.brand{font-weight:900;letter-spacing:.5px}
-.muted{color:var(--muted);font-size:12px}
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
 
-/* username/email lebih kelihatan */
+.brand{
+  font-weight:900;
+  letter-spacing:.5px;
+}
+
+.muted{
+  color:var(--muted);
+  font-size:12px;
+}
+
+/* USERNAME KELIHATAN */
 #who{
   font-size:13px;
   font-weight:800;
-  color:rgba(244,246,251,.92);
+  color:rgba(244,246,251,.95);
 }
 
+/* ===== CARD (GLASS BANK STYLE) ===== */
 .card{
   background:linear-gradient(180deg,var(--glass),var(--glass-strong));
   backdrop-filter:blur(14px);
@@ -53,23 +73,76 @@ header{
   margin-bottom:14px;
 }
 
+/* ===== GRID ===== */
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-@media(max-width:900px){.grid,.grid3{grid-template-columns:1fr}}
+@media(max-width:900px){
+  .grid,.grid3{grid-template-columns:1fr}
+}
 
-.big{font-size:26px;font-weight:900;letter-spacing:.3px}
+/* ===== TYPO ===== */
+.big{
+  font-size:26px;
+  font-weight:900;
+  letter-spacing:.3px;
+}
 
+/* ===== INPUT & SELECT (BASE) ===== */
 input,select{
   width:100%;
-  padding:12px;
+  padding:12px 44px 12px 12px;
   border-radius:14px;
   border:1px solid var(--line);
   background:rgba(255,255,255,.06);
   color:var(--text);
   outline:none;
+
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  appearance:none;
+
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat,no-repeat;
+  background-position:0 0,right 14px center;
+  background-size:100% 100%,18px 18px;
 }
+
 input::placeholder{color:#9aa1b5}
 
+/* ===== OPTION (DESKTOP, HP tergantung browser) ===== */
+select option{
+  background:#0b1020;
+  color:#f4f6fb;
+}
+
+/* ===== DROPDOWN JENIS – SERASI WARNA ===== */
+#jenis.jenis-in{
+  border-color:rgba(34,197,94,.65);
+  background-image:
+    linear-gradient(180deg, rgba(34,197,94,.20), rgba(34,197,94,.10)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23bbf7d0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  box-shadow:0 0 0 6px rgba(34,197,94,.12);
+}
+
+#jenis.jenis-out{
+  border-color:rgba(239,68,68,.65);
+  background-image:
+    linear-gradient(180deg, rgba(239,68,68,.20), rgba(239,68,68,.10)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23fecaca' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  box-shadow:0 0 0 6px rgba(239,68,68,.12);
+}
+
+/* ===== DROPDOWN RANGE – NETRAL SERASI ===== */
+#range{
+  border-color:rgba(148,163,184,.45);
+  background-image:
+    linear-gradient(180deg, rgba(59,130,246,.14), rgba(255,255,255,.05)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+/* ===== BUTTON ===== */
 button{
   width:100%;
   padding:12px;
@@ -81,42 +154,50 @@ button{
 }
 button:active{transform:scale(.97)}
 
-.btn{background:rgba(255,255,255,.12);color:var(--text)}
+.btn{
+  background:rgba(255,255,255,.12);
+  color:var(--text);
+}
 .btn:hover{background:rgba(255,255,255,.18)}
 
-.btn-in{background:linear-gradient(135deg,#16a34a,#22c55e);color:#06210f}
-.btn-out{background:linear-gradient(135deg,#dc2626,#ef4444);color:#2b0404}
+.btn-in{
+  background:linear-gradient(135deg,#16a34a,#22c55e);
+  color:#06210f;
+}
+.btn-out{
+  background:linear-gradient(135deg,#dc2626,#ef4444);
+  color:#2b0404;
+}
 
+/* ===== BUTTON ACTIVE (SESUAI PILIHAN) ===== */
+.active-in{
+  outline:2px solid rgba(34,197,94,.6);
+  box-shadow:0 0 0 6px rgba(34,197,94,.14);
+}
+.active-out{
+  outline:2px solid rgba(239,68,68,.6);
+  box-shadow:0 0 0 6px rgba(239,68,68,.14);
+}
+
+/* ===== CHART ===== */
 .chartWrap{height:320px;margin-top:10px}
 @media(max-width:600px){.chartWrap{height:240px}}
 
+/* ===== TABLE ===== */
 table{width:100%;border-collapse:collapse;font-size:13px}
 td,th{padding:8px;border-bottom:1px solid var(--line)}
 th{color:#cdd3e1}
 
+/* ===== SPACING ===== */
 .mt0{margin-top:0}
 .mt8{margin-top:8px}
 .mt10{margin-top:10px}
 
-.chartHead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.chartHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
 .controls{display:flex;gap:10px;flex-wrap:wrap}
-
-/* ====== WARNA PILIHAN JENIS ====== */
-select.jenis-in{
-  border-color: rgba(34,197,94,.55);
-  background: rgba(34,197,94,.12);
-}
-select.jenis-out{
-  border-color: rgba(239,68,68,.55);
-  background: rgba(239,68,68,.12);
-}
-
-/* tombol mode aktif (masuk/keluar) */
-.active-in{
-  outline: 2px solid rgba(34,197,94,.55);
-  box-shadow: 0 0 0 6px rgba(34,197,94,.12);
-}
-.active-out{
-  outline: 2px solid rgba(239,68,68,.55);
-  box-shadow: 0 0 0 6px rgba(239,68,68,.12);
-}
