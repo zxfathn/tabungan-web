@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tabungan • Candlestick</title>
+  <title>Tabungan • Grafik</title>
 
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="https://zxfathn.github.io/tabungan-web/style.css" />
+  <link rel="stylesheet" href="./https://zxfathn.github.io/tabungan-web/style.css" />
 
-  <!-- WAJIB URUTAN: Chart.js -> Financial -> Zoom -> app.js -->
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Chart.js (line chart biasa) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
 </head>
 
 <body>
 <header>
   <div class="wrap topbar">
     <div>
-      <div class="brand">🏦 Tabungan Candlestick</div>
+      <div class="brand">🏦 Tabungan (Grafik)</div>
       <div id="who" class="muted"></div>
     </div>
     <button id="btnLogout" class="btn" style="display:none;max-width:160px" type="button">Logout</button>
@@ -27,7 +27,6 @@
 </header>
 
 <main class="wrap">
-  <!-- LOGIN -->
   <section id="loginBox" class="card">
     <h3 class="mt0">Login / Daftar</h3>
     <input id="email" placeholder="email" />
@@ -39,7 +38,6 @@
     <div id="msg" class="muted mt10"></div>
   </section>
 
-  <!-- APP -->
   <section id="app" style="display:none">
     <div class="grid3">
       <div class="card"><div class="muted">Saldo</div><div id="saldo" class="big">Rp 0</div></div>
@@ -65,21 +63,14 @@
 
     <div class="card">
       <div class="chartHead">
-        <h3 class="mt0">Candlestick (1 transaksi = 1 candle)</h3>
+        <h3 class="mt0">Grafik Saldo</h3>
         <div class="controls">
-          <select id="mode" style="max-width:200px">
-            <option value="all" selected>Semua</option>
-            <option value="masuk">Uang Masuk</option>
-            <option value="keluar">Uang Keluar</option>
-          </select>
-
           <select id="range" style="max-width:200px">
             <option value="30s">Range: 30 detik</option>
             <option value="15m" selected>Range: 15 menit</option>
             <option value="1d">Range: 1 hari</option>
             <option value="all">Range: Semua</option>
           </select>
-
           <button id="btnCek" class="btn" type="button" style="max-width:200px">Cek Data Waktu</button>
         </div>
       </div>
@@ -88,7 +79,6 @@
         <canvas id="chart"></canvas>
       </div>
 
-      <div class="muted">Zoom: pinch (HP) / scroll (laptop). Geser: drag.</div>
       <div id="hint" class="muted mt8"></div>
     </div>
 
