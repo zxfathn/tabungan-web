@@ -3,16 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tabungan Online</title>
+<title>Tabungan Candlestick</title>
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- Chart.js + Candlestick -->
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<!-- Time adapter (WAJIB untuk scale: time) -->
 <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
+
+<!-- Candlestick plugin -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@3"></script>
+
+<!-- Zoom plugin -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
 
 <style>
@@ -25,7 +31,6 @@
   --line:rgba(255,255,255,.12);
   --green:#22c55e;
   --red:#ef4444;
-  --blue:#3b82f6;
   --r:16px;
 }
 *{box-sizing:border-box}
@@ -44,6 +49,7 @@ header{
   border-bottom:1px solid var(--line);
 }
 .wrap{max-width:1000px;margin:auto;padding:16px}
+.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .brand{font-weight:900}
 .muted{color:var(--mut);font-size:12px}
 
@@ -80,13 +86,13 @@ button{
 .btn{background:#ffffff15;color:var(--txt)}
 .btn-in{background:var(--green);color:#07140c}
 .btn-out{background:var(--red);color:#1b070a}
-button[disabled]{opacity:.5}
+button[disabled]{opacity:.5;cursor:not-allowed}
 
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 
-.chartWrap{height:280px}
-@media(max-width:600px){.chartWrap{height:220px}}
+.chartWrap{height:320px}
+@media(max-width:600px){.chartWrap{height:240px}}
 
 .flash{margin-top:10px;padding:10px;border-radius:12px;background:#3b82f622}
 .danger{margin-top:10px;padding:10px;border-radius:12px;background:#ef444422}
@@ -95,9 +101,14 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 
 <body>
 <header>
-  <div class="wrap">
-    <div class="brand">🏦 Tabungan </div>
-    <div id="who" class="muted"></div>
+  <div class="wrap top">
+    <div>
+      <div class="brand">🏦 Tabungan Candlestick</div>
+      <div id="who" class="muted"></div>
+    </div>
+    <div style="min-width:140px">
+      <button id="btnLogout" class="btn" style="display:none" type="button">Logout</button>
+    </div>
   </div>
 </header>
 
@@ -107,10 +118,10 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 <div id="loginBox" class="card">
   <h3>Login / Daftar</h3>
   <input id="email" placeholder="email">
-  <input id="password" type="password" placeholder="password">
+  <input id="password" type="password" placeholder="password (min 6)">
   <div class="grid">
-    <button id="btnDaftar" class="btn">Daftar</button>
-    <button id="btnLogin" class="btn">Login</button>
+    <button id="btnDaftar" class="btn" type="button">Daftar</button>
+    <button id="btnLogin" class="btn" type="button">Login</button>
   </div>
   <div id="msg" class="flash" style="display:none"></div>
 </div>
@@ -125,8 +136,8 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
   </div>
 
   <div class="grid">
-    <button id="btnMasuk" class="btn-in">+ Uang Masuk</button>
-    <button id="btnKeluar" class="btn-out">- Uang Keluar</button>
+    <button id="btnMasuk" class="btn-in" type="button">+ Uang Masuk</button>
+    <button id="btnKeluar" class="btn-out" type="button">- Uang Keluar</button>
   </div>
 
   <div class="card">
@@ -134,18 +145,18 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
       <option>Uang Masuk</option>
       <option>Uang Keluar</option>
     </select>
-    <input id="jumlah" type="number" placeholder="jumlah">
-    <input id="catatan" placeholder="catatan">
-    <button id="btnSimpan" class="btn">Simpan</button>
+    <input id="jumlah" type="number" inputmode="numeric" placeholder="jumlah">
+    <input id="catatan" placeholder="catatan (opsional)">
+    <button id="btnSimpan" class="btn" type="button">Simpan</button>
     <div id="msgErr" class="danger" style="display:none"></div>
   </div>
 
   <div class="card">
-    <h3>Candlestick Saldo </h3>
+    <h3>Candlestick Saldo (Trading)</h3>
     <div class="chartWrap">
       <canvas id="chartCandle"></canvas>
     </div>
-    <div class="muted">Pinch / scroll untuk zoom</div>
+    <div class="muted">Zoom: pinch (HP) / scroll (laptop). Geser: drag.</div>
   </div>
 
   <div class="card">
@@ -160,6 +171,7 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 </div>
 
 <script>
+/* ========= CONFIG ========= */
 const SUPABASE_URL = "https://hcfoqyekemhwnbbwdvae.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZm9xeWVrZW1od25iYndkdmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzA4NjIsImV4cCI6MjA4MzI0Njg2Mn0.S_kSysDrO_TfwUa4uOk-lUrW_OBf4tV6QJPsCO0iS0Y";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -169,123 +181,203 @@ const rupiah = n=>"Rp "+Number(n||0).toLocaleString("id-ID");
 const today = ()=>new Date().toISOString().slice(0,10);
 
 let cacheRows=[], chart=null;
-function show(el,t){el.style.display=t?"block":"none";el.textContent=t||""}
 
-/* AUTH */
+function show(el,t){ el.style.display=t?"block":"none"; el.textContent=t||""; }
+
+/* ========= IMPORTANT: REGISTER CHART MODULES ========= */
+(function registerAll(){
+  // registerables = TimeScale, LinearScale, etc. (penting untuk x: time)
+  if (Chart?.registerables) Chart.register(...Chart.registerables);
+
+  // register financial elements/controllers (biar candlestick muncul)
+  const fin = window["chartjs-chart-financial"];
+  if(fin){
+    // beberapa build expose beda nama; ini aman (cek yang ada aja)
+    ["CandlestickController","CandlestickElement","OhlcController","OhlcElement","FinancialScale"].forEach(k=>{
+      if(fin[k]) Chart.register(fin[k]);
+    });
+  }
+
+  // zoom plugin
+  if (window["chartjs-plugin-zoom"]) Chart.register(window["chartjs-plugin-zoom"]);
+})();
+
+/* ========= AUTH ========= */
 async function register(){
   show($("msg"),"Mendaftar...");
-  const {error}=await sb.auth.signUp({email:$("email").value,password:$("password").value});
+  const {error}=await sb.auth.signUp({email:$("email").value.trim(),password:$("password").value});
   show($("msg"), error?error.message:"Daftar berhasil, silakan login");
 }
+
 async function loginUser(){
   show($("msg"),"Login...");
-  const {error}=await sb.auth.signInWithPassword({email:$("email").value,password:$("password").value});
-  if(error) show($("msg"),error.message); else start();
+  const {error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+  if(error) show($("msg"),error.message);
+  else start();
 }
+
+async function logout(){
+  await sb.auth.signOut();
+  location.reload();
+}
+
 async function start(){
   $("loginBox").style.display="none";
   $("appBox").style.display="block";
+  $("btnLogout").style.display="block";
+
   const {data:{user}}=await sb.auth.getUser();
-  $("who").textContent=user.email;
+  $("who").textContent = user?.email ? ("Login: " + user.email) : "";
   loadData();
 }
 
-/* CANDLESTICK */
+/* ========= CANDLESTICK ========= */
 function buildCandles(rows){
-  const asc=[...rows].sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+  // urut dari lama -> baru
+  const asc=[...rows].sort((a,b)=> (a.tanggal||"").localeCompare(b.tanggal||""));
+
   let saldo=0;
-  const map=new Map();
+  const map=new Map(); // tgl -> {o,h,l,c}
 
   asc.forEach(r=>{
-    const d=r.tanggal;
-    if(!map.has(d)) map.set(d,{o:saldo,h:saldo,l:saldo,c:saldo});
-    saldo += r.jenis==="Uang Masuk"?+r.jumlah:-+r.jumlah;
-    const x=map.get(d);
+    const tgl=(r.tanggal||"").slice(0,10);
+    if(!tgl) return;
+
+    if(!map.has(tgl)) map.set(tgl,{o:saldo,h:saldo,l:saldo,c:saldo});
+
+    saldo += (r.jenis==="Uang Masuk" ? Number(r.jumlah||0) : -Number(r.jumlah||0));
+
+    const x=map.get(tgl);
     x.c=saldo;
     x.h=Math.max(x.h,saldo);
     x.l=Math.min(x.l,saldo);
   });
 
-  return [...map.entries()].map(([x,v])=>({x,o:v.o,h:v.h,l:v.l,c:v.c}));
+  const out=[...map.entries()].map(([x,v])=>({x, o:v.o, h:v.h, l:v.l, c:v.c}));
+
+  // biar HP ringan: 120 hari terakhir
+  return out.slice(-120);
 }
 
 function renderCandle(rows){
-  const ctx=$("chartCandle");
+  const canvas = $("chartCandle");
+  const ctx = canvas.getContext("2d");
+
   if(chart) chart.destroy();
+
   chart=new Chart(ctx,{
     type:"candlestick",
-    data:{datasets:[{data:buildCandles(rows)}]},
+    data:{datasets:[{label:"Saldo", data:buildCandles(rows)}]},
     options:{
       responsive:true,
       maintainAspectRatio:false,
       animation:false,
       plugins:{
         legend:{display:false},
-        zoom:{
-          pan:{enabled:true,mode:"x"},
-          zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"}
-        },
         tooltip:{
           callbacks:{
             label:c=>{
               const v=c.raw;
-              return `O ${rupiah(v.o)} H ${rupiah(v.h)} L ${rupiah(v.l)} C ${rupiah(v.c)}`;
+              return `O ${rupiah(v.o)}  H ${rupiah(v.h)}  L ${rupiah(v.l)}  C ${rupiah(v.c)}`;
             }
           }
+        },
+        zoom:{
+          pan:{enabled:true,mode:"x"},
+          zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"}
         }
       },
       scales:{
-        x:{type:"time",time:{unit:"day"}},
-        y:{ticks:{callback:v=>rupiah(v)}}
+        x:{type:"time", time:{unit:"day"}, ticks:{color:"#b7bcc6"}, grid:{color:"rgba(255,255,255,.06)"}},
+        y:{ticks:{color:"#b7bcc6", callback:v=>rupiah(v)}, grid:{color:"rgba(255,255,255,.06)"}}
       }
     }
   });
 }
 
-/* DATA */
+/* ========= DATA ========= */
 async function loadData(){
   const {data:{user}}=await sb.auth.getUser();
-  const {data}=await sb.from("transaksi").select("*").eq("user_id",user.id).order("tanggal",{ascending:false});
+  if(!user) return;
+
+  const {data, error}=await sb
+    .from("transaksi")
+    .select("*")
+    .eq("user_id", user.id)          // ✅ 1 akun = sama di HP & laptop
+    .order("tanggal",{ascending:false});
+
+  if(error){ show($("msgErr"), error.message); return; }
+
   cacheRows=data||[];
 
   let m=0,k=0;
   cacheRows.forEach(d=>d.jenis==="Uang Masuk"?m+=+d.jumlah:k+=+d.jumlah);
+
   $("saldo").textContent=rupiah(m-k);
   $("masuk").textContent=rupiah(m);
   $("keluar").textContent=rupiah(k);
 
   $("list").innerHTML="";
-  cacheRows.forEach(d=>$("list").innerHTML+=`<tr><td>${d.tanggal}</td><td>${d.jenis}</td><td>${rupiah(d.jumlah)}</td></tr>`);
+  if(cacheRows.length===0){
+    $("list").innerHTML=`<tr><td colspan="3">Belum ada transaksi</td></tr>`;
+  }else{
+    cacheRows.forEach(d=>{
+      $("list").innerHTML+=`<tr><td>${(d.tanggal||"").slice(0,10)}</td><td>${d.jenis}</td><td>${rupiah(d.jumlah)}</td></tr>`;
+    });
+  }
 
   renderCandle(cacheRows);
 }
 
 async function add(){
+  show($("msgErr"),"");
+
   const {data:{user}}=await sb.auth.getUser();
-  const j=+$("jumlah").value;
-  let saldo=cacheRows.reduce((s,r)=>s+(r.jenis==="Uang Masuk"?+r.jumlah:-r.jumlah),0);
-  if($("jenis").value==="Uang Keluar" && j>saldo){
-    show($("msgErr"),"Saldo tidak cukup");return;
+  if(!user) return;
+
+  const jenis=$("jenis").value;
+  const j=Number($("jumlah").value||0);
+  if(!j || j<=0){ show($("msgErr"),"Jumlah harus > 0"); return; }
+
+  // saldo tidak boleh minus
+  const saldo=cacheRows.reduce((s,r)=>s+(r.jenis==="Uang Masuk"?+r.jumlah:-r.jumlah),0);
+  if(jenis==="Uang Keluar" && j>saldo){
+    show($("msgErr"),"Saldo tidak cukup. Saldo sekarang: "+rupiah(saldo));
+    return;
   }
-  await sb.from("transaksi").insert([{user_id:user.id,tanggal:today(),jenis:$("jenis").value,jumlah:j,catatan:$("catatan").value}]);
-  $("jumlah").value="";$("catatan").value="";
+
+  const {error}=await sb.from("transaksi").insert([{
+    user_id:user.id,
+    tanggal:today(),
+    jenis,
+    jumlah:j,
+    catatan:$("catatan").value
+  }]);
+
+  if(error){ show($("msgErr"), error.message); return; }
+
+  $("jumlah").value="";
+  $("catatan").value="";
   loadData();
 }
 
-/* EVENT (AMAN DI HP) */
-function bind(id,fn){
-  const e=$(id);
-  e.addEventListener("click",fn);
-  e.addEventListener("touchend",fn);
+/* ========= EVENTS (AMAN DI HP) ========= */
+function bindTap(id, fn){
+  const el=$(id);
+  if(!el) return;
+  el.addEventListener("click",(e)=>{e.preventDefault();fn();},{passive:false});
+  el.addEventListener("touchend",(e)=>{e.preventDefault();fn();},{passive:false});
 }
 document.addEventListener("DOMContentLoaded",()=>{
-  bind("btnDaftar",register);
-  bind("btnLogin",loginUser);
-  bind("btnSimpan",add);
-  bind("btnMasuk",()=>{$("jenis").value="Uang Masuk"});
-  bind("btnKeluar",()=>{$("jenis").value="Uang Keluar"});
+  bindTap("btnDaftar", register);
+  bindTap("btnLogin", loginUser);
+  bindTap("btnLogout", logout);
+  bindTap("btnSimpan", add);
+  bindTap("btnMasuk", ()=>{$("jenis").value="Uang Masuk";});
+  bindTap("btnKeluar", ()=>{$("jenis").value="Uang Keluar";});
 });
-sb.auth.getSession().then(r=>r.data.session&&start());
+
+sb.auth.getSession().then(r=>r.data.session && start());
 </script>
 </body>
 </html>
