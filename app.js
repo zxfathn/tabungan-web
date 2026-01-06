@@ -7,18 +7,17 @@ const rp = n => "Rp "+Number(n||0).toLocaleString("id-ID");
 
 let rows=[], chart=null;
 
-/* ===== MENU GARIS (FIX TOTAL) ===== */
+/* MENU ☰ */
 let menuOpen=false;
-const btnMenu=$("btnMenu"), menuDrop=$("menuDrop");
-btnMenu.addEventListener("click",e=>{
+$("btnMenu").addEventListener("click",e=>{
   e.preventDefault(); e.stopPropagation();
   menuOpen=!menuOpen;
-  menuDrop.classList.toggle("show",menuOpen);
+  $("menuDrop").classList.toggle("show",menuOpen);
 });
-menuDrop.addEventListener("click",e=>e.stopPropagation());
-window.addEventListener("click",()=>{menuOpen=false;menuDrop.classList.remove("show");});
+$("menuDrop").addEventListener("click",e=>e.stopPropagation());
+window.addEventListener("click",()=>{$("menuDrop").classList.remove("show");menuOpen=false});
 
-/* ===== AUTH ===== */
+/* AUTH */
 async function daftar(){
   const {error}=await sb.auth.signUp({email:$("email").value,password:$("password").value});
   $("msg").innerText=error?error.message:"Daftar berhasil";
@@ -32,6 +31,8 @@ async function login(){
 async function start(){
   $("loginBox").style.display="none";
   $("app").style.display="block";
+  $("menuWrap").style.display="block"; // ⬅️ MENU MUNCUL SETELAH LOGIN
+
   const {data:{user}}=await sb.auth.getUser();
   $("who").innerText="User: "+user.email;
   $("profileEmail").innerText=user.email;
@@ -46,7 +47,7 @@ async function start(){
   load();
 }
 
-/* ===== DATA ===== */
+/* DATA */
 async function load(){
   const {data:{user}}=await sb.auth.getUser();
   const r=await sb.from("transaksi").select("*").eq("user_id",user.id).order("waktu");
@@ -85,14 +86,14 @@ function drawLine(){
   });
 }
 
-/* ===== WARNA PILIHAN ===== */
+/* WARNA PILIHAN */
 function setJenisUI(){
   const s=$("jenis");
   s.classList.remove("jenis-in","jenis-out");
   s.value==="Uang Masuk"?s.classList.add("jenis-in"):s.classList.add("jenis-out");
 }
 
-/* ===== PROFILE (AVATAR + NAMA) ===== */
+/* PROFILE (AVATAR + NAMA) */
 async function loadProfile(){
   const {data:{user}}=await sb.auth.getUser();
   let {data:prof}=await sb.from("profiles").select("name").eq("id",user.id).single();
@@ -111,7 +112,7 @@ async function uploadPhoto(file){
   loadProfile();
 }
 
-/* ===== EVENTS ===== */
+/* EVENTS */
 $("btnDaftar").onclick=daftar;
 $("btnLogin").onclick=login;
 $("btnSimpan").onclick=simpan;
