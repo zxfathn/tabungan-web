@@ -13,12 +13,17 @@
 <body>
 <header>
   <div class="wrap topbar">
-    <div>
-      <div class="brand">🏦 Tabungan</div>
-      <div id="who" class="muted"></div>
+
+    <!-- USER + AVATAR (KIRI) -->
+    <div class="userBox">
+      <img id="avatarHeader" class="avatarHeader">
+      <div>
+        <div class="brand">🏦 Tabungan</div>
+        <div id="who" class="muted"></div>
+      </div>
     </div>
 
-    <!-- MENU GARIS (HANYA SAAT LOGIN) -->
+    <!-- MENU ☰ (HANYA SAAT LOGIN) -->
     <div id="menuWrap" class="menuWrap" style="display:none">
       <button id="btnMenu" class="menuBtn" type="button">☰</button>
 
@@ -36,27 +41,32 @@
           <input type="file" id="photo" accept="image/*" hidden>
         </label>
 
-        <button id="btnLogout" class="menuLogout" type="button">🚪 Logout</button>
+        <button id="btnLogout" class="menuLogout" type="button">
+          🚪 Logout
+        </button>
       </div>
     </div>
+
   </div>
 </header>
 
 <main class="wrap">
+
   <!-- LOGIN -->
   <section id="loginBox" class="card">
     <h3 class="mt0">Login / Daftar</h3>
     <input id="email" placeholder="email">
     <input id="password" type="password" placeholder="password">
     <div class="grid mt10">
-      <button id="btnDaftar" class="btn" type="button">Daftar</button>
-      <button id="btnLogin" class="btn" type="button">Login</button>
+      <button id="btnDaftar" class="btn small">Daftar</button>
+      <button id="btnLogin" class="btn small">Login</button>
     </div>
     <div id="msg" class="muted mt10"></div>
   </section>
 
   <!-- APP -->
   <section id="app" style="display:none">
+
     <div class="grid3">
       <div class="card"><div class="muted">Saldo</div><div id="saldo" class="big">Rp 0</div></div>
       <div class="card"><div class="muted">Masuk</div><div id="masuk" class="big">Rp 0</div></div>
@@ -64,8 +74,8 @@
     </div>
 
     <div class="grid">
-      <button id="btnMasuk" class="btn-in" type="button">+ Uang Masuk</button>
-      <button id="btnKeluar" class="btn-out" type="button">- Uang Keluar</button>
+      <button id="btnMasuk" class="btn-in small">+ Uang Masuk</button>
+      <button id="btnKeluar" class="btn-out small">- Uang Keluar</button>
     </div>
 
     <div class="card">
@@ -75,7 +85,7 @@
       </select>
       <input id="jumlah" type="number" placeholder="jumlah" class="mt10">
       <input id="catatan" placeholder="catatan (opsional)" class="mt10">
-      <button id="btnSimpan" class="btn mt10" type="button">Simpan</button>
+      <button id="btnSimpan" class="btn small mt10">Simpan</button>
       <div id="err" class="muted mt8"></div>
     </div>
 
@@ -83,13 +93,6 @@
       <div class="chartWrap"><canvas id="chart"></canvas></div>
     </div>
 
-    <div class="card">
-      <h3 class="mt0">Riwayat</h3>
-      <table>
-        <thead><tr><th>Waktu</th><th>Jenis</th><th>Jumlah</th></tr></thead>
-        <tbody id="list"></tbody>
-      </table>
-    </div>
   </section>
 </main>
 
