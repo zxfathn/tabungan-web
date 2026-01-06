@@ -18,8 +18,8 @@
       <div id="who" class="muted"></div>
     </div>
 
-    <!-- MENU GARIS -->
-    <div class="menuWrap">
+    <!-- MENU GARIS (HANYA SAAT LOGIN) -->
+    <div id="menuWrap" class="menuWrap" style="display:none">
       <button id="btnMenu" class="menuBtn" type="button">☰</button>
 
       <div id="menuDrop" class="menuDrop">
@@ -31,7 +31,11 @@
           </div>
         </div>
 
-        <input type="file" id="photo" accept="image/*">
+        <label class="uploadBtn">
+          📷 Ganti Foto
+          <input type="file" id="photo" accept="image/*" hidden>
+        </label>
+
         <button id="btnLogout" class="menuLogout" type="button">🚪 Logout</button>
       </div>
     </div>
