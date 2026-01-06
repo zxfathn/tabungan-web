@@ -3,10 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tabungan Bank</title>
+<title>Tabungan Online</title>
 
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Chart.js + Candlestick -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
 
 <style>
 :root{
@@ -16,9 +23,9 @@
   --txt:#f4f5f7;
   --mut:#b7bcc6;
   --line:rgba(255,255,255,.12);
-  --blue:#3b82f6;
   --green:#22c55e;
   --red:#ef4444;
+  --blue:#3b82f6;
   --r:16px;
 }
 *{box-sizing:border-box}
@@ -78,8 +85,8 @@ button[disabled]{opacity:.5}
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 
-.chartWrap{height:240px}
-@media(max-width:600px){.chartWrap{height:200px}}
+.chartWrap{height:280px}
+@media(max-width:600px){.chartWrap{height:220px}}
 
 .flash{margin-top:10px;padding:10px;border-radius:12px;background:#3b82f622}
 .danger{margin-top:10px;padding:10px;border-radius:12px;background:#ef444422}
@@ -89,7 +96,7 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 <body>
 <header>
   <div class="wrap">
-    <div class="brand">🏦 Tabungan</div>
+    <div class="brand">🏦 Tabungan </div>
     <div id="who" class="muted"></div>
   </div>
 </header>
@@ -130,13 +137,15 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
     <input id="jumlah" type="number" placeholder="jumlah">
     <input id="catatan" placeholder="catatan">
     <button id="btnSimpan" class="btn">Simpan</button>
-    <div id="msg2" class="flash" style="display:none"></div>
     <div id="msgErr" class="danger" style="display:none"></div>
   </div>
 
   <div class="card">
-    <h3>Grafik Saldo (Trading)</h3>
-    <div class="chartWrap"><canvas id="chartTrading"></canvas></div>
+    <h3>Candlestick Saldo </h3>
+    <div class="chartWrap">
+      <canvas id="chartCandle"></canvas>
+    </div>
+    <div class="muted">Pinch / scroll untuk zoom</div>
   </div>
 
   <div class="card">
@@ -160,9 +169,9 @@ const rupiah = n=>"Rp "+Number(n||0).toLocaleString("id-ID");
 const today = ()=>new Date().toISOString().slice(0,10);
 
 let cacheRows=[], chart=null;
-
 function show(el,t){el.style.display=t?"block":"none";el.textContent=t||""}
 
+/* AUTH */
 async function register(){
   show($("msg"),"Mendaftar...");
   const {error}=await sb.auth.signUp({email:$("email").value,password:$("password").value});
@@ -173,7 +182,6 @@ async function loginUser(){
   const {error}=await sb.auth.signInWithPassword({email:$("email").value,password:$("password").value});
   if(error) show($("msg"),error.message); else start();
 }
-
 async function start(){
   $("loginBox").style.display="none";
   $("appBox").style.display="block";
@@ -182,24 +190,59 @@ async function start(){
   loadData();
 }
 
-function buildSaldoSeries(rows){
+/* CANDLESTICK */
+function buildCandles(rows){
+  const asc=[...rows].sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
   let saldo=0;
-  return [...rows].reverse().map(r=>{
-    saldo += r.jenis==="Uang Masuk"?Number(r.jumlah):-Number(r.jumlah);
-    return {x:r.tanggal,y:saldo};
+  const map=new Map();
+
+  asc.forEach(r=>{
+    const d=r.tanggal;
+    if(!map.has(d)) map.set(d,{o:saldo,h:saldo,l:saldo,c:saldo});
+    saldo += r.jenis==="Uang Masuk"?+r.jumlah:-+r.jumlah;
+    const x=map.get(d);
+    x.c=saldo;
+    x.h=Math.max(x.h,saldo);
+    x.l=Math.min(x.l,saldo);
   });
+
+  return [...map.entries()].map(([x,v])=>({x,o:v.o,h:v.h,l:v.l,c:v.c}));
 }
 
-function renderChart(rows){
-  const ctx=$("chartTrading");
+function renderCandle(rows){
+  const ctx=$("chartCandle");
   if(chart) chart.destroy();
   chart=new Chart(ctx,{
-    type:"line",
-    data:{datasets:[{data:buildSaldoSeries(rows),borderColor:"#3b82f6",backgroundColor:"#3b82f633",fill:true,pointRadius:0,tension:.35}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:false}
+    type:"candlestick",
+    data:{datasets:[{data:buildCandles(rows)}]},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      animation:false,
+      plugins:{
+        legend:{display:false},
+        zoom:{
+          pan:{enabled:true,mode:"x"},
+          zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"}
+        },
+        tooltip:{
+          callbacks:{
+            label:c=>{
+              const v=c.raw;
+              return `O ${rupiah(v.o)} H ${rupiah(v.h)} L ${rupiah(v.l)} C ${rupiah(v.c)}`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{type:"time",time:{unit:"day"}},
+        y:{ticks:{callback:v=>rupiah(v)}}
+      }
+    }
   });
 }
 
+/* DATA */
 async function loadData(){
   const {data:{user}}=await sb.auth.getUser();
   const {data}=await sb.from("transaksi").select("*").eq("user_id",user.id).order("tanggal",{ascending:false});
@@ -214,21 +257,22 @@ async function loadData(){
   $("list").innerHTML="";
   cacheRows.forEach(d=>$("list").innerHTML+=`<tr><td>${d.tanggal}</td><td>${d.jenis}</td><td>${rupiah(d.jumlah)}</td></tr>`);
 
-  renderChart(cacheRows);
+  renderCandle(cacheRows);
 }
 
 async function add(){
   const {data:{user}}=await sb.auth.getUser();
   const j=+$("jumlah").value;
-  if($("jenis").value==="Uang Keluar"){
-    let saldo=cacheRows.reduce((s,r)=>s+(r.jenis==="Uang Masuk"?+r.jumlah:-r.jumlah),0);
-    if(j>saldo){show($("msgErr"),"Saldo tidak cukup");return;}
+  let saldo=cacheRows.reduce((s,r)=>s+(r.jenis==="Uang Masuk"?+r.jumlah:-r.jumlah),0);
+  if($("jenis").value==="Uang Keluar" && j>saldo){
+    show($("msgErr"),"Saldo tidak cukup");return;
   }
   await sb.from("transaksi").insert([{user_id:user.id,tanggal:today(),jenis:$("jenis").value,jumlah:j,catatan:$("catatan").value}]);
   $("jumlah").value="";$("catatan").value="";
   loadData();
 }
 
+/* EVENT (AMAN DI HP) */
 function bind(id,fn){
   const e=$(id);
   e.addEventListener("click",fn);
