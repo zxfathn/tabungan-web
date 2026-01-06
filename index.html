@@ -8,19 +8,37 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://zxfathn.github.io/tabungan-web/style.css">
 
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Chart -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
-
 <header>
   <div class="wrap topbar">
     <div>
       <div class="brand">🏦 Tabungan</div>
       <div id="who" class="muted"></div>
+    </div>
+
+    <!-- MENU GARIS -->
+    <div class="menuWrap">
+      <button id="btnMenu" class="menuBtn">☰</button>
+
+      <div id="menuDrop" class="menuDrop">
+        <div class="menuProfile">
+          <img id="avatar" alt="avatar">
+          <div>
+            <div id="profileName" class="profileName"></div>
+            <div id="profileEmail" class="muted"></div>
+          </div>
+        </div>
+
+        <input type="file" id="photo" accept="image/*">
+
+        <button id="btnLogout" class="menuLogout">
+          🚪 Logout
+        </button>
+      </div>
     </div>
   </div>
 </header>
@@ -42,20 +60,17 @@
   <!-- APP -->
   <section id="app" style="display:none">
 
-    <!-- RINGKASAN -->
     <div class="grid3">
       <div class="card"><div class="muted">Saldo</div><div id="saldo" class="big">Rp 0</div></div>
       <div class="card"><div class="muted">Masuk</div><div id="masuk" class="big">Rp 0</div></div>
       <div class="card"><div class="muted">Keluar</div><div id="keluar" class="big">Rp 0</div></div>
     </div>
 
-    <!-- JENIS -->
     <div class="grid">
       <button id="btnMasuk" class="btn-in">+ Uang Masuk</button>
       <button id="btnKeluar" class="btn-out">- Uang Keluar</button>
     </div>
 
-    <!-- INPUT -->
     <div class="card">
       <select id="jenis">
         <option>Uang Masuk</option>
@@ -67,50 +82,21 @@
       <div id="err" class="muted mt8"></div>
     </div>
 
-    <!-- GRAFIK -->
     <div class="card">
       <div class="chartHead">
         <h3 class="mt0">Grafik Saldo</h3>
-        <select id="range">
-          <option value="all">Semua</option>
-          <option value="30s">30 Detik</option>
-          <option value="15m" selected>15 Menit</option>
-          <option value="1d">1 Hari</option>
-        </select>
       </div>
       <div class="chartWrap">
         <canvas id="chart"></canvas>
       </div>
-      <div id="hint" class="muted mt8"></div>
     </div>
 
-    <!-- RIWAYAT -->
     <div class="card">
       <h3 class="mt0">Riwayat</h3>
       <table>
         <thead><tr><th>Waktu</th><th>Jenis</th><th>Jumlah</th></tr></thead>
         <tbody id="list"></tbody>
       </table>
-    </div>
-
-    <!-- MENU PROFIL + FOTO + LOGOUT -->
-    <div class="card">
-      <h3 class="mt0">Profil</h3>
-
-      <div class="profileBox">
-        <img id="avatar" alt="avatar">
-        <div class="profileInfo">
-          <div id="profileName" class="profileName"></div>
-          <div id="profileEmail" class="muted"></div>
-        </div>
-      </div>
-
-      <input type="file" id="photo" accept="image/*" class="mt10">
-      <div class="muted mt8">Upload / ganti foto profil</div>
-
-      <div class="profileMenu">
-        <button id="btnLogout" class="profileLogout">🚪 Logout</button>
-      </div>
     </div>
 
   </section>
