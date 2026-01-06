@@ -1,4 +1,4 @@
-/* ====== CONFIG SUPABASE (PASTIIN BENAR) ====== */
+/* ====== SUPABASE ====== */
 const SUPABASE_URL = "https://hcfoqyekemhwnbbwdvae.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZm9xeWVrZW1od25iYndkdmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzA4NjIsImV4cCI6MjA4MzI0Njg2Mn0.S_kSysDrO_TfwUa4uOk-lUrW_OBf4tV6QJPsCO0iS0Y";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -13,14 +13,12 @@ function showMsg(t){ $("msg").innerText = t || ""; }
 function showErr(t){ $("err").innerText = t || ""; }
 
 function parseTs(row){
-  // pakai kolom waktu dulu, fallback ke tanggal
   const s = String((row?.waktu || row?.tanggal || "")).trim();
   const t = Date.parse(s);
   if (!Number.isNaN(t)) return t;
   const t2 = Date.parse(s + "T00:00:00Z");
   return Number.isNaN(t2) ? null : t2;
 }
-
 function rangeMs(r){
   if (r === "30s") return 30_000;
   if (r === "15m") return 15 * 60_000;
@@ -28,10 +26,35 @@ function rangeMs(r){
   return null; // all
 }
 
-/* ====== REGISTER CHART ====== */
-(function registerChart(){
+/* ====== REGISTER CHART + FINANCIAL (INI FIX ERROR "candlestick not registered") ====== */
+(function registerAll(){
   if (Chart?.registerables) Chart.register(...Chart.registerables);
   if (window.ChartZoom) Chart.register(window.ChartZoom);
+
+  // chartjs-chart-financial UMD bisa muncul dengan nama berbeda, jadi kita cari yang ada
+  const fin =
+    window.ChartFinancial ||
+    window["chartjs-chart-financial"] ||
+    window.chartjsChartFinancial ||
+    window.Financial;
+
+  const regs = [];
+  const pick = (obj, key) => (obj && obj[key]) ? obj[key] : null;
+
+  const CandlestickController = pick(fin,"CandlestickController") || window.CandlestickController;
+  const CandlestickElement    = pick(fin,"CandlestickElement")    || window.CandlestickElement;
+  const OhlcController        = pick(fin,"OhlcController")        || window.OhlcController;
+  const OhlcElement           = pick(fin,"OhlcElement")           || window.OhlcElement;
+  const FinancialScale        = pick(fin,"FinancialScale")        || window.FinancialScale;
+
+  [CandlestickController, CandlestickElement, OhlcController, OhlcElement, FinancialScale]
+    .forEach(x => { if (x) regs.push(x); });
+
+  if (regs.length) {
+    Chart.register(...regs);
+  } else {
+    console.error("Plugin financial tidak ter-register. Pastikan urutan script di index.html benar.");
+  }
 })();
 
 /* ====== AUTH ====== */
@@ -70,9 +93,10 @@ async function start(){
   await load();
 }
 
-/* ====== CRUD ====== */
+/* ====== DATA ====== */
 async function load(){
   showErr("");
+
   const { data:{user} } = await sb.auth.getUser();
   if (!user) return;
 
@@ -102,6 +126,7 @@ async function load(){
 
 async function simpan(){
   showErr("");
+
   const j = Number($("jumlah").value || 0);
   if (!j || j <= 0){ showErr("Jumlah harus > 0"); return; }
 
@@ -116,7 +141,7 @@ async function simpan(){
 
   const ins = await sb.from("transaksi").insert([{
     user_id: user.id,
-    waktu: nowIso,   // ✅ supaya range 30s/15m/1d bisa
+    waktu: nowIso,
     tanggal: nowIso, // fallback
     jenis: $("jenis").value,
     jumlah: j,
@@ -175,10 +200,16 @@ function draw(){
   const d = buildCandlesPerTx();
   $("hint").innerText = d.length ? `Candle: ${d.length}` : "Tidak ada transaksi di range ini.";
 
-  const ctx = $("chart").getContext("2d");
-  if (chart) chart.destroy();
+  const canvas = $("chart");
+
+  // ✅ FIX "Canvas already in use"
+  const old = Chart.getChart(canvas);
+  if (old) old.destroy();
+  if (chart) { chart.destroy(); chart = null; }
+
   if (!d.length) return;
 
+  const ctx = canvas.getContext("2d");
   chart = new Chart(ctx, {
     type: "candlestick",
     data: {
@@ -189,8 +220,11 @@ function draw(){
         color: { up:"#22c55e", down:"#ef4444", unchanged:"#9ca3af" },
         borderColor: { up:"#22c55e", down:"#ef4444", unchanged:"#9ca3af" },
         wickColor: { up:"#22c55e", down:"#ef4444", unchanged:"#9ca3af" },
-        backgroundColor: { up:"rgba(34,197,94,0.9)", down:"rgba(239,68,68,0.9)", unchanged:"rgba(156,163,175,0.9)" },
-
+        backgroundColor: {
+          up:"rgba(34,197,94,0.9)",
+          down:"rgba(239,68,68,0.9)",
+          unchanged:"rgba(156,163,175,0.9)"
+        },
         borderWidth: 2,
         barThickness: 12
       }]
@@ -207,15 +241,8 @@ function draw(){
         }
       },
       scales: {
-        x: {
-          type: "category",
-          ticks: { maxTicksLimit: 6, color:"#b7bcc6" },
-          grid: { color:"rgba(255,255,255,.08)" }
-        },
-        y: {
-          ticks: { color:"#b7bcc6", callback:(v)=>rp(v) },
-          grid: { color:"rgba(255,255,255,.08)" }
-        }
+        x: { type:"category", ticks:{ maxTicksLimit:6, color:"#b7bcc6" }, grid:{ color:"rgba(255,255,255,.08)" } },
+        y: { ticks:{ color:"#b7bcc6", callback:(v)=>rp(v) }, grid:{ color:"rgba(255,255,255,.08)" } }
       }
     }
   });
@@ -247,7 +274,7 @@ function cek(){
   );
 }
 
-/* ====== EVENTS (AMAN DI HP) ====== */
+/* ====== EVENTS ====== */
 function bindTap(id, fn){
   const el = $(id);
   if (!el) return;
