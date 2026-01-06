@@ -1,471 +1,247 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tabungan • Bank Style</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tabungan Bank</title>
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <!-- Chart.js (Grafik) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0b0c10;
+  --card:#15161b;
+  --card2:#1f2028;
+  --txt:#f4f5f7;
+  --mut:#b7bcc6;
+  --line:rgba(255,255,255,.12);
+  --blue:#3b82f6;
+  --green:#22c55e;
+  --red:#ef4444;
+  --r:16px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui,Arial;
+  background:linear-gradient(180deg,#0f1020,#05060a);
+  color:var(--txt);
+}
+button{touch-action:manipulation}
 
-  <style>
-    :root{
-      /* Serasi dengan wallpaper (gelap + neon biru/ungu) */
-      --txt:#eef2ff;
-      --mut:rgba(238,242,255,.72);
-      --line:rgba(255,255,255,.10);
-      --shadow:0 18px 45px rgba(0,0,0,.45);
+header{
+  position:sticky;top:0;z-index:10;
+  background:#0b0c10cc;
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.wrap{max-width:1000px;margin:auto;padding:16px}
+.brand{font-weight:900}
+.muted{color:var(--mut);font-size:12px}
 
-      --card1:rgba(12, 18, 38, .72);
-      --card2:rgba(16, 28, 58, .62);
+.card{
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  padding:14px;
+  margin-bottom:12px;
+}
 
-      --accent:#60a5fa;   /* biru */
-      --accent2:#a78bfa;  /* ungu */
-      --green:#22c55e;
-      --red:#ef4444;
-      --soft:rgba(255,255,255,.10);
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.grid,.grid3{grid-template-columns:1fr}}
 
-      --r:18px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:system-ui,Arial;
-      color:var(--txt);
-      background:
-        linear-gradient(180deg, rgba(7,10,18,.82), rgba(7,10,18,.92)),
-        url("https://wallpapercave.com/wp/wp13990679.png");
-      background-size:cover;
-      background-position:center;
-      background-attachment:fixed;
-      min-height:100vh;
-    }
-    header{
-      position:sticky;top:0;z-index:10;
-      background:rgba(6,10,18,.65);
-      backdrop-filter: blur(10px);
-      border-bottom:1px solid var(--line);
-    }
-    .wrap{max-width:1020px;margin:auto;padding:16px}
-    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-    .brand{font-weight:1000;letter-spacing:.3px}
-    .muted{color:var(--mut);font-size:12px}
+.big{font-size:26px;font-weight:900}
 
-    .card{
-      background:linear-gradient(180deg,var(--card1),var(--card2));
-      border:1px solid var(--line);
-      border-radius:var(--r);
-      padding:14px;
-      box-shadow:var(--shadow);
-    }
+input,select{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:#ffffff10;
+  color:var(--txt);
+}
+button{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:0;
+  font-weight:900;
+  cursor:pointer;
+}
+.btn{background:#ffffff15;color:var(--txt)}
+.btn-in{background:var(--green);color:#07140c}
+.btn-out{background:var(--red);color:#1b070a}
+button[disabled]{opacity:.5}
 
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-    @media(max-width:900px){.grid3{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 
-    .big{font-size:26px;font-weight:1000}
-    .btn{
-      border:0;border-radius:14px;padding:12px 12px;
-      font-weight:950;cursor:pointer;
-      transition:transform .05s ease;
-    }
-    .btn:active{transform:scale(.99)}
-    .btn-soft{background:var(--soft);color:var(--txt);border:1px solid var(--line)}
-    .btn-in{background:linear-gradient(180deg,#34d399,var(--green));color:#071012}
-    .btn-out{background:linear-gradient(180deg,#fb7185,var(--red));color:#071012}
-    .btn[disabled]{opacity:.5;cursor:not-allowed}
+.chartWrap{height:240px}
+@media(max-width:600px){.chartWrap{height:200px}}
 
-    input,select{
-      width:100%;
-      padding:12px 12px;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      color:var(--txt);
-      outline:none;
-    }
-    input::placeholder{color:rgba(255,255,255,.45)}
-    select option{color:#111}
-
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;vertical-align:top}
-
-    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:950}
-    .pill.in{background:rgba(34,197,94,.18);color:#86efac;border:1px solid rgba(34,197,94,.25)}
-    .pill.out{background:rgba(239,68,68,.18);color:#fecaca;border:1px solid rgba(239,68,68,.25)}
-
-    .flash{margin-top:10px;padding:10px 12px;border-radius:14px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.25);color:#dbeafe;display:none}
-    .danger{margin-top:10px;padding:10px 12px;border-radius:14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#fecaca;display:none}
-
-    .divider{
-      height:1px;background:linear-gradient(90deg, transparent, rgba(167,139,250,.55), transparent);
-      margin:10px 0;
-    }
-
-    .chartWrap{
-      position:relative;
-      width:100%;
-      height:320px;
-    }
-    @media(max-width:600px){ .chartWrap{height:280px;} }
-  </style>
+.flash{margin-top:10px;padding:10px;border-radius:12px;background:#3b82f622}
+.danger{margin-top:10px;padding:10px;border-radius:12px;background:#ef444422}
+</style>
 </head>
 
 <body>
 <header>
-  <div class="wrap topbar">
-    <div>
-      <div class="brand">🏦 Tabungan</div>
-      <div class="muted">Bank-style • Multi user • Grafik bulanan</div>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <div id="who" class="muted"></div>
-      <button id="btnLogout" class="btn btn-soft" style="display:none" type="button">Logout</button>
-    </div>
+  <div class="wrap">
+    <div class="brand">🏦 Tabungan</div>
+    <div id="who" class="muted"></div>
   </div>
 </header>
 
 <div class="wrap">
 
-  <!-- LOGIN -->
-  <div id="loginBox" class="card" style="max-width:520px;margin:16px auto">
-    <h3 style="margin:0 0 6px 0">Login / Daftar</h3>
-    <div class="muted">Password minimal 6 karakter</div>
-    <div class="divider"></div>
+<!-- LOGIN -->
+<div id="loginBox" class="card">
+  <h3>Login / Daftar</h3>
+  <input id="email" placeholder="email">
+  <input id="password" type="password" placeholder="password">
+  <div class="grid">
+    <button id="btnDaftar" class="btn">Daftar</button>
+    <button id="btnLogin" class="btn">Login</button>
+  </div>
+  <div id="msg" class="flash" style="display:none"></div>
+</div>
 
-    <input id="email" placeholder="email">
-    <input id="password" type="password" placeholder="password">
+<!-- APP -->
+<div id="appBox" style="display:none">
 
-    <div class="grid" style="margin-top:12px">
-      <button class="btn btn-soft" id="btnDaftar" type="button">Daftar</button>
-      <button class="btn btn-soft" id="btnLogin" type="button">Login</button>
-    </div>
-
-    <div id="msg" class="flash"></div>
+  <div class="grid3">
+    <div class="card"><div class="muted">Saldo</div><div id="saldo" class="big">Rp 0</div></div>
+    <div class="card"><div class="muted">Masuk</div><div id="masuk" class="big">Rp 0</div></div>
+    <div class="card"><div class="muted">Keluar</div><div id="keluar" class="big">Rp 0</div></div>
   </div>
 
-  <!-- APP -->
-  <div id="appBox" style="display:none">
-
-    <!-- SALDO + TOTAL -->
-    <div class="grid3">
-      <div class="card">
-        <div class="muted">Saldo</div>
-        <div id="saldo" class="big">Rp 0</div>
-        <div class="muted" style="margin-top:6px">Saldo aman: jika kurang, “Keluar” otomatis ditolak.</div>
-      </div>
-      <div class="card">
-        <div class="muted">Total Masuk</div>
-        <div id="masuk" class="big">Rp 0</div>
-      </div>
-      <div class="card">
-        <div class="muted">Total Keluar</div>
-        <div id="keluar" class="big">Rp 0</div>
-      </div>
-    </div>
-
-    <!-- QUICK ACTION -->
-    <div class="grid" style="margin-top:12px">
-      <button class="btn btn-in" id="btnMasuk" type="button">+ Setor (Masuk)</button>
-      <button class="btn btn-out" id="btnKeluar" type="button">- Tarik (Keluar)</button>
-    </div>
-
-    <!-- FORM -->
-    <div class="card" style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-        <h3 style="margin:0">Transaksi</h3>
-        <div class="muted">Hari ini: <span id="today"></span></div>
-      </div>
-
-      <div class="grid" style="margin-top:10px">
-        <div>
-          <div class="muted">Jenis</div>
-          <select id="jenis">
-            <option>Uang Masuk</option>
-            <option>Uang Keluar</option>
-          </select>
-        </div>
-        <div>
-          <div class="muted">Jumlah</div>
-          <input id="jumlah" type="number" inputmode="numeric" placeholder="contoh: 1000000">
-        </div>
-      </div>
-
-      <div style="margin-top:10px">
-        <div class="muted">Catatan (opsional)</div>
-        <input id="catatan" placeholder="misal: tabungan awal">
-      </div>
-
-      <button class="btn btn-soft" id="btnSimpan" type="button" style="margin-top:12px">Simpan</button>
-
-      <div id="msg2" class="flash"></div>
-      <div id="msgErr" class="danger"></div>
-    </div>
-
-    <!-- GRAFIK BULANAN -->
-    <div class="card" style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-        <h3 style="margin:0">Grafik Bulanan</h3>
-        <div class="muted">Masuk vs Keluar (12 bulan terakhir)</div>
-      </div>
-      <div class="divider"></div>
-      <div class="chartWrap">
-        <canvas id="chartBulanan"></canvas>
-      </div>
-    </div>
-
-    <!-- LAPORAN BULANAN -->
-    <div class="card" style="margin-top:12px">
-      <h3 style="margin:0 0 6px 0">Laporan Bulanan</h3>
-      <div class="muted">Masuk, keluar, selisih per bulan</div>
-      <table>
-        <thead><tr><th>Bulan</th><th>Masuk</th><th>Keluar</th><th>Selisih</th></tr></thead>
-        <tbody id="laporan"></tbody>
-      </table>
-    </div>
-
-    <!-- RIWAYAT -->
-    <div class="card" style="margin-top:12px">
-      <h3 style="margin:0 0 6px 0">Riwayat</h3>
-      <table>
-        <thead><tr><th>Tanggal</th><th>Jenis</th><th>Jumlah</th><th></th></tr></thead>
-        <tbody id="list"></tbody>
-      </table>
-    </div>
-
+  <div class="grid">
+    <button id="btnMasuk" class="btn-in">+ Uang Masuk</button>
+    <button id="btnKeluar" class="btn-out">- Uang Keluar</button>
   </div>
+
+  <div class="card">
+    <select id="jenis">
+      <option>Uang Masuk</option>
+      <option>Uang Keluar</option>
+    </select>
+    <input id="jumlah" type="number" placeholder="jumlah">
+    <input id="catatan" placeholder="catatan">
+    <button id="btnSimpan" class="btn">Simpan</button>
+    <div id="msg2" class="flash" style="display:none"></div>
+    <div id="msgErr" class="danger" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <h3>Grafik Saldo (Trading)</h3>
+    <div class="chartWrap"><canvas id="chartTrading"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h3>Riwayat</h3>
+    <table>
+      <thead><tr><th>Tanggal</th><th>Jenis</th><th>Jumlah</th></tr></thead>
+      <tbody id="list"></tbody>
+    </table>
+  </div>
+
+</div>
 </div>
 
 <script>
-  /* ========= SUPABASE CONFIG ========= */
-  const SUPABASE_URL = "https://hcfoqyekemhwnbbwdvae.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZm9xeWVrZW1od25iYndkdmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzA4NjIsImV4cCI6MjA4MzI0Njg2Mn0.S_kSysDrO_TfwUa4uOk-lUrW_OBf4tV6QJPsCO0iS0Y";
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL = "https://hcfoqyekemhwnbbwdvae.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZm9xeWVrZW1od25iYndkdmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzA4NjIsImV4cCI6MjA4MzI0Njg2Mn0.S_kSysDrO_TfwUa4uOk-lUrW_OBf4tV6QJPsCO0iS0Y";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const $ = (id) => document.getElementById(id);
-  function rupiah(n){ return "Rp " + Number(n||0).toLocaleString("id-ID"); }
-  function today(){ return new Date().toISOString().slice(0,10); }
+const $ = id=>document.getElementById(id);
+const rupiah = n=>"Rp "+Number(n||0).toLocaleString("id-ID");
+const today = ()=>new Date().toISOString().slice(0,10);
 
-  let cacheRows = [];
-  let chart = null;
+let cacheRows=[], chart=null;
 
-  function show(el, text){
-    el.style.display = text ? "block" : "none";
-    el.textContent = text || "";
+function show(el,t){el.style.display=t?"block":"none";el.textContent=t||""}
+
+async function register(){
+  show($("msg"),"Mendaftar...");
+  const {error}=await sb.auth.signUp({email:$("email").value,password:$("password").value});
+  show($("msg"), error?error.message:"Daftar berhasil, silakan login");
+}
+async function loginUser(){
+  show($("msg"),"Login...");
+  const {error}=await sb.auth.signInWithPassword({email:$("email").value,password:$("password").value});
+  if(error) show($("msg"),error.message); else start();
+}
+
+async function start(){
+  $("loginBox").style.display="none";
+  $("appBox").style.display="block";
+  const {data:{user}}=await sb.auth.getUser();
+  $("who").textContent=user.email;
+  loadData();
+}
+
+function buildSaldoSeries(rows){
+  let saldo=0;
+  return [...rows].reverse().map(r=>{
+    saldo += r.jenis==="Uang Masuk"?Number(r.jumlah):-Number(r.jumlah);
+    return {x:r.tanggal,y:saldo};
+  });
+}
+
+function renderChart(rows){
+  const ctx=$("chartTrading");
+  if(chart) chart.destroy();
+  chart=new Chart(ctx,{
+    type:"line",
+    data:{datasets:[{data:buildSaldoSeries(rows),borderColor:"#3b82f6",backgroundColor:"#3b82f633",fill:true,pointRadius:0,tension:.35}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false}
+  });
+}
+
+async function loadData(){
+  const {data:{user}}=await sb.auth.getUser();
+  const {data}=await sb.from("transaksi").select("*").eq("user_id",user.id).order("tanggal",{ascending:false});
+  cacheRows=data||[];
+
+  let m=0,k=0;
+  cacheRows.forEach(d=>d.jenis==="Uang Masuk"?m+=+d.jumlah:k+=+d.jumlah);
+  $("saldo").textContent=rupiah(m-k);
+  $("masuk").textContent=rupiah(m);
+  $("keluar").textContent=rupiah(k);
+
+  $("list").innerHTML="";
+  cacheRows.forEach(d=>$("list").innerHTML+=`<tr><td>${d.tanggal}</td><td>${d.jenis}</td><td>${rupiah(d.jumlah)}</td></tr>`);
+
+  renderChart(cacheRows);
+}
+
+async function add(){
+  const {data:{user}}=await sb.auth.getUser();
+  const j=+$("jumlah").value;
+  if($("jenis").value==="Uang Keluar"){
+    let saldo=cacheRows.reduce((s,r)=>s+(r.jenis==="Uang Masuk"?+r.jumlah:-r.jumlah),0);
+    if(j>saldo){show($("msgErr"),"Saldo tidak cukup");return;}
   }
+  await sb.from("transaksi").insert([{user_id:user.id,tanggal:today(),jenis:$("jenis").value,jumlah:j,catatan:$("catatan").value}]);
+  $("jumlah").value="";$("catatan").value="";
+  loadData();
+}
 
-  function hitung(rows){
-    let masuk=0, keluar=0;
-    rows.forEach(d=>{
-      if(d.jenis==="Uang Masuk") masuk += Number(d.jumlah);
-      else if(d.jenis==="Uang Keluar") keluar += Number(d.jumlah);
-    });
-    return {masuk, keluar, saldo: masuk-keluar};
-  }
-
-  function updateGuard(){
-    const t = hitung(cacheRows);
-    const jenis = $("jenis").value;
-    const jumlah = Number($("jumlah").value || 0);
-
-    $("btnSimpan").disabled = false;
-    show($("msgErr"), "");
-
-    if(jenis === "Uang Keluar" && jumlah > 0 && jumlah > t.saldo){
-      $("btnSimpan").disabled = true;
-      show($("msgErr"), "Saldo tidak cukup. Saldo sekarang: " + rupiah(t.saldo));
-    }
-  }
-
-  /* ========= AUTH ========= */
-  async function register(){
-    const email = $("email").value.trim();
-    const password = $("password").value;
-    show($("msg"), "Mendaftar...");
-    const { error } = await sb.auth.signUp({ email, password });
-    show($("msg"), error ? ("Gagal daftar: " + error.message) : "Daftar berhasil. Sekarang klik Login.");
-  }
-
-  async function loginUser(){
-    const email = $("email").value.trim();
-    const password = $("password").value;
-    show($("msg"), "Login...");
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if(error) show($("msg"), "Gagal login: " + error.message);
-    else start();
-  }
-
-  async function logout(){
-    await sb.auth.signOut();
-    location.reload();
-  }
-
-  /* ========= REPORT + CHART ========= */
-  function renderBulanan(rows){
-    const map = new Map();
-    rows.forEach(d=>{
-      const ym = (d.tanggal||"").slice(0,7);
-      if(!ym) return;
-      if(!map.has(ym)) map.set(ym, {bulan: ym, masuk:0, keluar:0});
-      const r = map.get(ym);
-      if(d.jenis==="Uang Masuk") r.masuk += Number(d.jumlah);
-      else if(d.jenis==="Uang Keluar") r.keluar += Number(d.jumlah);
-    });
-
-    const arr = Array.from(map.values()).sort((a,b)=> b.bulan.localeCompare(a.bulan));
-
-    // Table laporan
-    $("laporan").innerHTML = arr.length ? "" : `<tr><td colspan="4" class="muted">Belum ada data.</td></tr>`;
-    arr.forEach(r=>{
-      const sel = r.masuk - r.keluar;
-      $("laporan").innerHTML += `<tr>
-        <td>${r.bulan}</td><td>${rupiah(r.masuk)}</td><td>${rupiah(r.keluar)}</td><td>${rupiah(sel)}</td>
-      </tr>`;
-    });
-
-    // Chart (12 bulan terakhir)
-    const last12 = arr.slice(0,12).reverse(); // biar kiri->kanan makin baru
-    const labels = last12.map(x => x.bulan);
-    const masuk = last12.map(x => x.masuk);
-    const keluar = last12.map(x => x.keluar);
-
-    const ctx = $("chartBulanan").getContext("2d");
-    if(chart) chart.destroy();
-
-    chart = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [
-          { label: "Masuk", data: masuk, borderWidth: 0 },
-          { label: "Keluar", data: keluar, borderWidth: 0 }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: "rgba(238,242,255,.85)" } },
-          tooltip: {
-            callbacks: {
-              label: (c) => `${c.dataset.label}: ${rupiah(c.raw)}`
-            }
-          }
-        },
-        scales: {
-          x: { ticks: { color: "rgba(238,242,255,.75)" }, grid: { color: "rgba(255,255,255,.06)" } },
-          y: {
-            ticks: { color: "rgba(238,242,255,.75)", callback: (v)=> rupiah(v) },
-            grid: { color: "rgba(255,255,255,.06)" }
-          }
-        }
-      }
-    });
-  }
-
-  /* ========= APP ========= */
-  async function start(){
-    $("loginBox").style.display = "none";
-    $("appBox").style.display = "block";
-    $("btnLogout").style.display = "inline-block";
-    $("today").textContent = today();
-
-    const { data:{user} } = await sb.auth.getUser();
-    $("who").textContent = user?.email ? user.email : "";
-
-    await loadData();
-  }
-
-  async function loadData(){
-    show($("msg2"), "Memuat...");
-    show($("msgErr"), "");
-
-    const { data, error } = await sb.from("transaksi").select("*").order("tanggal",{ascending:false});
-    if(error){ show($("msgErr"), error.message); show($("msg2"), ""); return; }
-
-    cacheRows = data || [];
-    const t = hitung(cacheRows);
-
-    $("saldo").textContent  = rupiah(t.saldo);
-    $("masuk").textContent  = rupiah(t.masuk);
-    $("keluar").textContent = rupiah(t.keluar);
-
-    $("list").innerHTML = cacheRows.length ? "" : `<tr><td colspan="4" class="muted">Belum ada transaksi.</td></tr>`;
-    cacheRows.forEach(d=>{
-      const pill = d.jenis==="Uang Masuk"
-        ? `<span class="pill in">Masuk</span>`
-        : `<span class="pill out">Keluar</span>`;
-      $("list").innerHTML += `<tr>
-        <td>${d.tanggal||""}</td>
-        <td>${pill}</td>
-        <td>${rupiah(d.jumlah)}</td>
-        <td><button class="btn btn-soft" onclick="hapus('${d.id}')">Hapus</button></td>
-      </tr>`;
-    });
-
-    renderBulanan(cacheRows);
-    show($("msg2"), "");
-    updateGuard();
-  }
-
-  async function add(){
-    show($("msg2"), "");
-    show($("msgErr"), "");
-
-    const { data:{user} } = await sb.auth.getUser();
-    if(!user){ show($("msgErr"), "Belum login"); return; }
-
-    const jenis = $("jenis").value;
-    const jumlah = Number($("jumlah").value);
-    const catatan = $("catatan").value || "";
-
-    if(!jumlah || jumlah<=0){ show($("msgErr"), "Jumlah harus > 0"); return; }
-
-    // BLOKIR KERAS: keluar > saldo = tidak boleh
-    const t = hitung(cacheRows);
-    if(jenis === "Uang Keluar" && jumlah > t.saldo){
-      show($("msgErr"), "Saldo tidak cukup. Saldo sekarang: " + rupiah(t.saldo));
-      updateGuard();
-      return;
-    }
-
-    show($("msg2"), "Menyimpan...");
-    const { error } = await sb.from("transaksi").insert([{
-      user_id:user.id,
-      tanggal:today(),
-      jenis, jumlah, catatan
-    }]);
-
-    if(error){ show($("msgErr"), error.message); show($("msg2"), ""); return; }
-
-    $("jumlah").value="";
-    $("catatan").value="";
-    show($("msg2"), "Tersimpan ✅");
-    await loadData();
-  }
-
-  async function hapus(id){
-    await sb.from("transaksi").delete().eq("id", id);
-    await loadData();
-  }
-
-  /* ========= EVENT ========= */
-  $("btnDaftar").onclick = register;
-  $("btnLogin").onclick  = loginUser;
-  $("btnLogout").onclick = logout;
-  $("btnSimpan").onclick = add;
-
-  $("btnMasuk").onclick = () => { $("jenis").value="Uang Masuk"; $("jumlah").focus(); updateGuard(); };
-  $("btnKeluar").onclick = () => { $("jenis").value="Uang Keluar"; $("jumlah").focus(); updateGuard(); };
-
-  $("jenis").addEventListener("change", updateGuard);
-  $("jumlah").addEventListener("input", updateGuard);
-
-  /* ========= AUTO LOGIN ========= */
-  sb.auth.getSession().then(r=>{ if(r.data.session) start(); });
+function bind(id,fn){
+  const e=$(id);
+  e.addEventListener("click",fn);
+  e.addEventListener("touchend",fn);
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  bind("btnDaftar",register);
+  bind("btnLogin",loginUser);
+  bind("btnSimpan",add);
+  bind("btnMasuk",()=>{$("jenis").value="Uang Masuk"});
+  bind("btnKeluar",()=>{$("jenis").value="Uang Keluar"});
+});
+sb.auth.getSession().then(r=>r.data.session&&start());
 </script>
 </body>
 </html>
