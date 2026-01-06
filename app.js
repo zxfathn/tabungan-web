@@ -1,19 +1,24 @@
 const SUPABASE_URL = "https://hcfoqyekemhwnbbwdvae.supabase.co";
-const SUPABASE_ANON_KEY = "ISI_ANON_KEY_KAMU";
-const sb = supabase.createClient("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZm9xeWVrZW1od25iYndkdmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzA4NjIsImV4cCI6MjA4MzI0Njg2Mn0.S_kSysDrO_TfwUa4uOk-lUrW_OBf4tV6QJPsCO0iS0Y");
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZm9xeWVrZW1od25iYndkdmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzA4NjIsImV4cCI6MjA4MzI0Njg2Mn0.S_kSysDrO_TfwUa4uOk-lUrW_OBf4tV6QJPsCO0iS0Y";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const $ = id => document.getElementById(id);
 const rp = n => "Rp "+Number(n||0).toLocaleString("id-ID");
 
 let rows=[], chart=null;
 
-/* MENU */
-$("btnMenu").onclick = ()=> $("menuDrop").classList.toggle("show");
-document.addEventListener("click", e=>{
-  if(!e.target.closest(".menuWrap")) $("menuDrop").classList.remove("show");
+/* ===== MENU GARIS (FIX TOTAL) ===== */
+let menuOpen=false;
+const btnMenu=$("btnMenu"), menuDrop=$("menuDrop");
+btnMenu.addEventListener("click",e=>{
+  e.preventDefault(); e.stopPropagation();
+  menuOpen=!menuOpen;
+  menuDrop.classList.toggle("show",menuOpen);
 });
+menuDrop.addEventListener("click",e=>e.stopPropagation());
+window.addEventListener("click",()=>{menuOpen=false;menuDrop.classList.remove("show");});
 
-/* AUTH */
+/* ===== AUTH ===== */
 async function daftar(){
   const {error}=await sb.auth.signUp({email:$("email").value,password:$("password").value});
   $("msg").innerText=error?error.message:"Daftar berhasil";
@@ -27,22 +32,21 @@ async function login(){
 async function start(){
   $("loginBox").style.display="none";
   $("app").style.display="block";
-
   const {data:{user}}=await sb.auth.getUser();
   $("who").innerText="User: "+user.email;
   $("profileEmail").innerText=user.email;
 
   $("btnLogout").onclick=async()=>{
     if(!confirm("Yakin logout?"))return;
-    await sb.auth.signOut();
-    location.reload();
+    await sb.auth.signOut(); location.reload();
   };
 
   await loadProfile();
+  setJenisUI();
   load();
 }
 
-/* DATA */
+/* ===== DATA ===== */
 async function load(){
   const {data:{user}}=await sb.auth.getUser();
   const r=await sb.from("transaksi").select("*").eq("user_id",user.id).order("waktu");
@@ -62,10 +66,10 @@ async function load(){
 }
 
 async function simpan(){
-  const j=Number($("jumlah").value);
+  const j=Number($("jumlah").value||0);
   if(!j)return;
   const saldo=rows.reduce((s,r)=>s+(r.jenis==="Uang Masuk"?+r.jumlah:-r.jumlah),0);
-  if($("jenis").value==="Uang Keluar"&&j>saldo)return alert("Saldo kurang");
+  if($("jenis").value==="Uang Keluar"&&j>saldo){alert("Saldo kurang");return;}
   const {data:{user}}=await sb.auth.getUser();
   await sb.from("transaksi").insert([{user_id:user.id,jenis:$("jenis").value,jumlah:j,waktu:new Date().toISOString(),catatan:$("catatan").value||""}]);
   $("jumlah").value="";$("catatan").value="";load();
@@ -81,31 +85,38 @@ function drawLine(){
   });
 }
 
-/* PROFILE (AVATAR + NAMA) */
+/* ===== WARNA PILIHAN ===== */
+function setJenisUI(){
+  const s=$("jenis");
+  s.classList.remove("jenis-in","jenis-out");
+  s.value==="Uang Masuk"?s.classList.add("jenis-in"):s.classList.add("jenis-out");
+}
+
+/* ===== PROFILE (AVATAR + NAMA) ===== */
 async function loadProfile(){
   const {data:{user}}=await sb.auth.getUser();
-
   let {data:prof}=await sb.from("profiles").select("name").eq("id",user.id).single();
   if(!prof){
     await sb.from("profiles").insert([{id:user.id,name:user.email.split("@")[0]}]);
     $("profileName").innerText=user.email.split("@")[0];
-  }else{
-    $("profileName").innerText=prof.name;
-  }
+  }else $("profileName").innerText=prof.name;
 
   const img=$("avatar");
   img.src=`${SUPABASE_URL}/storage/v1/object/public/avatars/${user.id}.jpg?${Date.now()}`;
   img.style.display="block";
 }
-
 async function uploadPhoto(file){
   const {data:{user}}=await sb.auth.getUser();
   await sb.storage.from("avatars").upload(`${user.id}.jpg`,file,{upsert:true,contentType:file.type});
   loadProfile();
 }
 
+/* ===== EVENTS ===== */
 $("btnDaftar").onclick=daftar;
 $("btnLogin").onclick=login;
 $("btnSimpan").onclick=simpan;
+$("btnMasuk").onclick=()=>{$("jenis").value="Uang Masuk";setJenisUI();};
+$("btnKeluar").onclick=()=>{$("jenis").value="Uang Keluar";setJenisUI();};
+$("jenis").addEventListener("change",setJenisUI);
 $("photo").addEventListener("change",e=>e.target.files[0]&&uploadPhoto(e.target.files[0]));
 sb.auth.getSession().then(r=>r.data.session&&start());
