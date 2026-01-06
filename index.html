@@ -6,6 +6,7 @@
   <title>Tabungan</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://zxfathn.github.io/tabungan-web/style.css">
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
@@ -14,16 +15,16 @@
 <header>
   <div class="wrap topbar">
 
-    <!-- USER + AVATAR (KIRI) -->
+    <!-- KIRI: AVATAR + BRAND + USER -->
     <div class="userBox">
-      <img id="avatarHeader" class="avatarHeader">
+      <img id="avatarHeader" class="avatarHeader" alt="avatar">
       <div>
         <div class="brand">🏦 Tabungan</div>
         <div id="who" class="muted"></div>
       </div>
     </div>
 
-    <!-- MENU ☰ (HANYA SAAT LOGIN) -->
+    <!-- KANAN: MENU ☰ (MUNCUL SETELAH LOGIN) -->
     <div id="menuWrap" class="menuWrap" style="display:none">
       <button id="btnMenu" class="menuBtn" type="button">☰</button>
 
@@ -36,14 +37,12 @@
           </div>
         </div>
 
-        <label class="uploadBtn">
+        <label class="uploadBtn" for="photo">
           📷 Ganti Foto
-          <input type="file" id="photo" accept="image/*" hidden>
         </label>
+        <input type="file" id="photo" accept="image/*" hidden>
 
-        <button id="btnLogout" class="menuLogout" type="button">
-          🚪 Logout
-        </button>
+        <button id="btnLogout" class="menuLogout" type="button">🚪 Logout</button>
       </div>
     </div>
 
@@ -51,15 +50,14 @@
 </header>
 
 <main class="wrap">
-
   <!-- LOGIN -->
   <section id="loginBox" class="card">
     <h3 class="mt0">Login / Daftar</h3>
     <input id="email" placeholder="email">
     <input id="password" type="password" placeholder="password">
     <div class="grid mt10">
-      <button id="btnDaftar" class="btn small">Daftar</button>
-      <button id="btnLogin" class="btn small">Login</button>
+      <button id="btnDaftar" class="btn small" type="button">Daftar</button>
+      <button id="btnLogin" class="btn small" type="button">Login</button>
     </div>
     <div id="msg" class="muted mt10"></div>
   </section>
@@ -74,8 +72,8 @@
     </div>
 
     <div class="grid">
-      <button id="btnMasuk" class="btn-in small">+ Uang Masuk</button>
-      <button id="btnKeluar" class="btn-out small">- Uang Keluar</button>
+      <button id="btnMasuk" class="btn-in small" type="button">+ Uang Masuk</button>
+      <button id="btnKeluar" class="btn-out small" type="button">- Uang Keluar</button>
     </div>
 
     <div class="card">
@@ -83,14 +81,28 @@
         <option>Uang Masuk</option>
         <option>Uang Keluar</option>
       </select>
-      <input id="jumlah" type="number" placeholder="jumlah" class="mt10">
+
+      <input id="jumlah" type="number" inputmode="numeric" placeholder="jumlah" class="mt10">
       <input id="catatan" placeholder="catatan (opsional)" class="mt10">
-      <button id="btnSimpan" class="btn small mt10">Simpan</button>
+
+      <button id="btnSimpan" class="btn small mt10" type="button">Simpan</button>
       <div id="err" class="muted mt8"></div>
     </div>
 
     <div class="card">
-      <div class="chartWrap"><canvas id="chart"></canvas></div>
+      <h3 class="mt0">Grafik Saldo</h3>
+      <div class="chartWrap">
+        <canvas id="chart"></canvas>
+      </div>
+      <div id="hint" class="muted mt8"></div>
+    </div>
+
+    <div class="card">
+      <h3 class="mt0">Riwayat</h3>
+      <table>
+        <thead><tr><th>Waktu</th><th>Jenis</th><th>Jumlah</th></tr></thead>
+        <tbody id="list"></tbody>
+      </table>
     </div>
 
   </section>
