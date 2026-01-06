@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tabungan Candlestick</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tabungan • Online</title>
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11,14 +11,10 @@
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-<!-- Time adapter (WAJIB untuk scale: time) -->
-<script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
-
-<!-- Candlestick plugin -->
+<!-- Candlestick (financial) -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@3"></script>
 
-<!-- Zoom plugin -->
+<!-- Zoom (pinch / scroll) -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
 
 <style>
@@ -74,6 +70,7 @@ input,select{
   border:1px solid var(--line);
   background:#ffffff10;
   color:var(--txt);
+  outline:none;
 }
 button{
   width:100%;
@@ -91,11 +88,11 @@ button[disabled]{opacity:.5;cursor:not-allowed}
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 
-.chartWrap{height:320px}
+.chartWrap{height:340px}
 @media(max-width:600px){.chartWrap{height:240px}}
 
-.flash{margin-top:10px;padding:10px;border-radius:12px;background:#3b82f622}
-.danger{margin-top:10px;padding:10px;border-radius:12px;background:#ef444422}
+.flash{margin-top:10px;padding:10px;border-radius:12px;background:#3b82f622;display:none}
+.danger{margin-top:10px;padding:10px;border-radius:12px;background:#ef444422;display:none}
 </style>
 </head>
 
@@ -103,7 +100,7 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 <header>
   <div class="wrap top">
     <div>
-      <div class="brand">🏦 Tabungan Candlestick</div>
+      <div class="brand">🏦 Tabungan </div>
       <div id="who" class="muted"></div>
     </div>
     <div style="min-width:140px">
@@ -114,60 +111,61 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 
 <div class="wrap">
 
-<!-- LOGIN -->
-<div id="loginBox" class="card">
-  <h3>Login / Daftar</h3>
-  <input id="email" placeholder="email">
-  <input id="password" type="password" placeholder="password (min 6)">
-  <div class="grid">
-    <button id="btnDaftar" class="btn" type="button">Daftar</button>
-    <button id="btnLogin" class="btn" type="button">Login</button>
-  </div>
-  <div id="msg" class="flash" style="display:none"></div>
-</div>
-
-<!-- APP -->
-<div id="appBox" style="display:none">
-
-  <div class="grid3">
-    <div class="card"><div class="muted">Saldo</div><div id="saldo" class="big">Rp 0</div></div>
-    <div class="card"><div class="muted">Masuk</div><div id="masuk" class="big">Rp 0</div></div>
-    <div class="card"><div class="muted">Keluar</div><div id="keluar" class="big">Rp 0</div></div>
-  </div>
-
-  <div class="grid">
-    <button id="btnMasuk" class="btn-in" type="button">+ Uang Masuk</button>
-    <button id="btnKeluar" class="btn-out" type="button">- Uang Keluar</button>
-  </div>
-
-  <div class="card">
-    <select id="jenis">
-      <option>Uang Masuk</option>
-      <option>Uang Keluar</option>
-    </select>
-    <input id="jumlah" type="number" inputmode="numeric" placeholder="jumlah">
-    <input id="catatan" placeholder="catatan (opsional)">
-    <button id="btnSimpan" class="btn" type="button">Simpan</button>
-    <div id="msgErr" class="danger" style="display:none"></div>
-  </div>
-
-  <div class="card">
-    <h3>Candlestick Saldo (Trading)</h3>
-    <div class="chartWrap">
-      <canvas id="chartCandle"></canvas>
+  <!-- LOGIN -->
+  <div id="loginBox" class="card">
+    <h3>Login / Daftar</h3>
+    <input id="email" placeholder="email" />
+    <input id="password" type="password" placeholder="password (min 6)" />
+    <div class="grid">
+      <button id="btnDaftar" class="btn" type="button">Daftar</button>
+      <button id="btnLogin" class="btn" type="button">Login</button>
     </div>
-    <div class="muted">Zoom: pinch (HP) / scroll (laptop). Geser: drag.</div>
+    <div id="msg" class="flash"></div>
   </div>
 
-  <div class="card">
-    <h3>Riwayat</h3>
-    <table>
-      <thead><tr><th>Tanggal</th><th>Jenis</th><th>Jumlah</th></tr></thead>
-      <tbody id="list"></tbody>
-    </table>
+  <!-- APP -->
+  <div id="appBox" style="display:none">
+
+    <div class="grid3">
+      <div class="card"><div class="muted">Saldo</div><div id="saldo" class="big">Rp 0</div></div>
+      <div class="card"><div class="muted">Masuk</div><div id="masuk" class="big">Rp 0</div></div>
+      <div class="card"><div class="muted">Keluar</div><div id="keluar" class="big">Rp 0</div></div>
+    </div>
+
+    <div class="grid">
+      <button id="btnMasuk" class="btn-in" type="button">+ Uang Masuk</button>
+      <button id="btnKeluar" class="btn-out" type="button">- Uang Keluar</button>
+    </div>
+
+    <div class="card">
+      <select id="jenis">
+        <option>Uang Masuk</option>
+        <option>Uang Keluar</option>
+      </select>
+      <input id="jumlah" type="number" inputmode="numeric" placeholder="jumlah" />
+      <input id="catatan" placeholder="catatan (opsional)" />
+      <button id="btnSimpan" class="btn" type="button">Simpan</button>
+      <div id="msgErr" class="danger"></div>
+    </div>
+
+    <div class="card">
+      <h3>Candlestick Saldo </h3>
+      <div class="chartWrap">
+        <canvas id="chartCandle"></canvas>
+      </div>
+      <div class="muted">Zoom: pinch (HP) / scroll (laptop). Geser: drag.</div>
+      <div id="chartHint" class="muted" style="margin-top:6px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Riwayat</h3>
+      <table>
+        <thead><tr><th>Tanggal</th><th>Jenis</th><th>Jumlah</th></tr></thead>
+        <tbody id="list"></tbody>
+      </table>
+    </div>
   </div>
 
-</div>
 </div>
 
 <script>
@@ -176,43 +174,49 @@ const SUPABASE_URL = "https://hcfoqyekemhwnbbwdvae.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZm9xeWVrZW1od25iYndkdmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzA4NjIsImV4cCI6MjA4MzI0Njg2Mn0.S_kSysDrO_TfwUa4uOk-lUrW_OBf4tV6QJPsCO0iS0Y";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const $ = id=>document.getElementById(id);
-const rupiah = n=>"Rp "+Number(n||0).toLocaleString("id-ID");
+const $ = (id)=>document.getElementById(id);
+const rupiah = (n)=>"Rp "+Number(n||0).toLocaleString("id-ID");
 const today = ()=>new Date().toISOString().slice(0,10);
 
-let cacheRows=[], chart=null;
+let cacheRows = [];
+let chart = null;
 
-function show(el,t){ el.style.display=t?"block":"none"; el.textContent=t||""; }
+function show(el, text){
+  el.style.display = text ? "block" : "none";
+  el.textContent = text || "";
+}
 
-/* ========= IMPORTANT: REGISTER CHART MODULES ========= */
-(function registerAll(){
-  // registerables = TimeScale, LinearScale, etc. (penting untuk x: time)
+/* ========= REGISTER ALL (BIAR PLUGIN KE-DETEK) ========= */
+(function registerEverything(){
   if (Chart?.registerables) Chart.register(...Chart.registerables);
 
-  // register financial elements/controllers (biar candlestick muncul)
+  // UMD: zoom biasanya expose window.ChartZoom
+  if (window.ChartZoom) Chart.register(window.ChartZoom);
+
+  // beberapa build financial auto-register; kalau tidak, tetap aman
   const fin = window["chartjs-chart-financial"];
-  if(fin){
-    // beberapa build expose beda nama; ini aman (cek yang ada aja)
+  if (fin) {
     ["CandlestickController","CandlestickElement","OhlcController","OhlcElement","FinancialScale"].forEach(k=>{
-      if(fin[k]) Chart.register(fin[k]);
+      if (fin[k]) Chart.register(fin[k]);
     });
   }
-
-  // zoom plugin
-  if (window["chartjs-plugin-zoom"]) Chart.register(window["chartjs-plugin-zoom"]);
 })();
 
 /* ========= AUTH ========= */
 async function register(){
-  show($("msg"),"Mendaftar...");
-  const {error}=await sb.auth.signUp({email:$("email").value.trim(),password:$("password").value});
-  show($("msg"), error?error.message:"Daftar berhasil, silakan login");
+  show($("msg"), "Mendaftar...");
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  const { error } = await sb.auth.signUp({ email, password });
+  show($("msg"), error ? error.message : "Daftar berhasil, silakan login");
 }
 
 async function loginUser(){
-  show($("msg"),"Login...");
-  const {error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
-  if(error) show($("msg"),error.message);
+  show($("msg"), "Login...");
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) show($("msg"), error.message);
   else start();
 }
 
@@ -222,74 +226,88 @@ async function logout(){
 }
 
 async function start(){
-  $("loginBox").style.display="none";
-  $("appBox").style.display="block";
-  $("btnLogout").style.display="block";
+  $("loginBox").style.display = "none";
+  $("appBox").style.display = "block";
+  $("btnLogout").style.display = "block";
 
-  const {data:{user}}=await sb.auth.getUser();
+  const { data:{user} } = await sb.auth.getUser();
   $("who").textContent = user?.email ? ("Login: " + user.email) : "";
-  loadData();
+  await loadData();
 }
 
-/* ========= CANDLESTICK ========= */
+/* ========= CANDLESTICK (PAKAI CATEGORY BIAR PASTI MUNCUL) ========= */
 function buildCandles(rows){
-  // urut dari lama -> baru
-  const asc=[...rows].sort((a,b)=> (a.tanggal||"").localeCompare(b.tanggal||""));
+  // urut lama -> baru
+  const asc = [...rows].sort((a,b)=> (a.tanggal||"").localeCompare(b.tanggal||""));
+  let saldo = 0;
+  const map = new Map(); // YYYY-MM-DD -> {o,h,l,c}
 
-  let saldo=0;
-  const map=new Map(); // tgl -> {o,h,l,c}
+  for (const r of asc){
+    const tgl = (r.tanggal || "").slice(0,10);
+    if (!tgl) continue;
 
-  asc.forEach(r=>{
-    const tgl=(r.tanggal||"").slice(0,10);
-    if(!tgl) return;
+    if (!map.has(tgl)) map.set(tgl, { o: saldo, h: saldo, l: saldo, c: saldo });
 
-    if(!map.has(tgl)) map.set(tgl,{o:saldo,h:saldo,l:saldo,c:saldo});
+    const j = Number(r.jumlah || 0);
+    saldo += (r.jenis === "Uang Masuk") ? j : -j;
 
-    saldo += (r.jenis==="Uang Masuk" ? Number(r.jumlah||0) : -Number(r.jumlah||0));
+    const d = map.get(tgl);
+    d.c = saldo;
+    d.h = Math.max(d.h, saldo);
+    d.l = Math.min(d.l, saldo);
+  }
 
-    const x=map.get(tgl);
-    x.c=saldo;
-    x.h=Math.max(x.h,saldo);
-    x.l=Math.min(x.l,saldo);
-  });
-
-  const out=[...map.entries()].map(([x,v])=>({x, o:v.o, h:v.h, l:v.l, c:v.c}));
-
-  // biar HP ringan: 120 hari terakhir
-  return out.slice(-120);
+  // {x:'YYYY-MM-DD', o,h,l,c}
+  return [...map.entries()].map(([x,v]) => ({ x, o:v.o, h:v.h, l:v.l, c:v.c })).slice(-150);
 }
 
 function renderCandle(rows){
   const canvas = $("chartCandle");
+  if (!canvas) return;
+
   const ctx = canvas.getContext("2d");
+  if (chart) chart.destroy();
 
-  if(chart) chart.destroy();
+  const candles = buildCandles(rows);
 
-  chart=new Chart(ctx,{
-    type:"candlestick",
-    data:{datasets:[{label:"Saldo", data:buildCandles(rows)}]},
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      animation:false,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          callbacks:{
-            label:c=>{
-              const v=c.raw;
+  $("chartHint").textContent =
+    candles.length
+      ? `Menampilkan ${candles.length} candle (per hari).`
+      : "Belum ada data untuk chart.";
+
+  // kalau kosong, jangan bikin chart (biar nggak error)
+  if (!candles.length) return;
+
+  chart = new Chart(ctx, {
+    type: "candlestick",
+    data: {
+      datasets: [{
+        label: "Saldo",
+        data: candles
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (c) => {
+              const v = c.raw;
               return `O ${rupiah(v.o)}  H ${rupiah(v.h)}  L ${rupiah(v.l)}  C ${rupiah(v.c)}`;
             }
           }
         },
-        zoom:{
-          pan:{enabled:true,mode:"x"},
-          zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"}
+        zoom: {
+          pan: { enabled: true, mode: "x" },
+          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "x" }
         }
       },
-      scales:{
-        x:{type:"time", time:{unit:"day"}, ticks:{color:"#b7bcc6"}, grid:{color:"rgba(255,255,255,.06)"}},
-        y:{ticks:{color:"#b7bcc6", callback:v=>rupiah(v)}, grid:{color:"rgba(255,255,255,.06)"}}
+      scales: {
+        x: { type: "category", ticks: { maxTicksLimit: 6, color: "#b7bcc6" }, grid: { color:"rgba(255,255,255,.06)" } },
+        y: { ticks: { color: "#b7bcc6", callback: (v)=> rupiah(v) }, grid: { color:"rgba(255,255,255,.06)" } }
       }
     }
   });
@@ -297,32 +315,43 @@ function renderCandle(rows){
 
 /* ========= DATA ========= */
 async function loadData(){
-  const {data:{user}}=await sb.auth.getUser();
-  if(!user) return;
+  show($("msgErr"), "");
 
-  const {data, error}=await sb
+  const { data:{user} } = await sb.auth.getUser();
+  if (!user) return;
+
+  // ✅ 1 akun sama di HP & laptop
+  const { data, error } = await sb
     .from("transaksi")
     .select("*")
-    .eq("user_id", user.id)          // ✅ 1 akun = sama di HP & laptop
-    .order("tanggal",{ascending:false});
+    .eq("user_id", user.id)
+    .order("tanggal", { ascending:false });
 
-  if(error){ show($("msgErr"), error.message); return; }
+  if (error){
+    show($("msgErr"), error.message);
+    return;
+  }
 
-  cacheRows=data||[];
+  cacheRows = data || [];
 
-  let m=0,k=0;
-  cacheRows.forEach(d=>d.jenis==="Uang Masuk"?m+=+d.jumlah:k+=+d.jumlah);
+  let masuk = 0, keluar = 0;
+  cacheRows.forEach(d => (d.jenis === "Uang Masuk") ? masuk += +d.jumlah : keluar += +d.jumlah);
 
-  $("saldo").textContent=rupiah(m-k);
-  $("masuk").textContent=rupiah(m);
-  $("keluar").textContent=rupiah(k);
+  $("saldo").textContent = rupiah(masuk - keluar);
+  $("masuk").textContent = rupiah(masuk);
+  $("keluar").textContent = rupiah(keluar);
 
-  $("list").innerHTML="";
-  if(cacheRows.length===0){
-    $("list").innerHTML=`<tr><td colspan="3">Belum ada transaksi</td></tr>`;
-  }else{
+  const list = $("list");
+  list.innerHTML = "";
+  if (!cacheRows.length){
+    list.innerHTML = `<tr><td colspan="3">Belum ada transaksi</td></tr>`;
+  } else {
     cacheRows.forEach(d=>{
-      $("list").innerHTML+=`<tr><td>${(d.tanggal||"").slice(0,10)}</td><td>${d.jenis}</td><td>${rupiah(d.jumlah)}</td></tr>`;
+      list.innerHTML += `<tr>
+        <td>${(d.tanggal||"").slice(0,10)}</td>
+        <td>${d.jenis}</td>
+        <td>${rupiah(d.jumlah)}</td>
+      </tr>`;
     });
   }
 
@@ -330,54 +359,63 @@ async function loadData(){
 }
 
 async function add(){
-  show($("msgErr"),"");
+  show($("msgErr"), "");
 
-  const {data:{user}}=await sb.auth.getUser();
-  if(!user) return;
+  const { data:{user} } = await sb.auth.getUser();
+  if (!user) return;
 
-  const jenis=$("jenis").value;
-  const j=Number($("jumlah").value||0);
-  if(!j || j<=0){ show($("msgErr"),"Jumlah harus > 0"); return; }
-
-  // saldo tidak boleh minus
-  const saldo=cacheRows.reduce((s,r)=>s+(r.jenis==="Uang Masuk"?+r.jumlah:-r.jumlah),0);
-  if(jenis==="Uang Keluar" && j>saldo){
-    show($("msgErr"),"Saldo tidak cukup. Saldo sekarang: "+rupiah(saldo));
+  const jenis = $("jenis").value;
+  const j = Number($("jumlah").value || 0);
+  if (!j || j <= 0){
+    show($("msgErr"), "Jumlah harus > 0");
     return;
   }
 
-  const {error}=await sb.from("transaksi").insert([{
-    user_id:user.id,
-    tanggal:today(),
+  // saldo tidak boleh minus
+  const saldo = cacheRows.reduce((s,r)=> s + (r.jenis==="Uang Masuk" ? +r.jumlah : -r.jumlah), 0);
+  if (jenis === "Uang Keluar" && j > saldo){
+    show($("msgErr"), "Saldo tidak cukup. Saldo sekarang: " + rupiah(saldo));
+    return;
+  }
+
+  const { error } = await sb.from("transaksi").insert([{
+    user_id: user.id,
+    tanggal: today(),
     jenis,
-    jumlah:j,
-    catatan:$("catatan").value
+    jumlah: j,
+    catatan: $("catatan").value
   }]);
 
-  if(error){ show($("msgErr"), error.message); return; }
+  if (error){
+    show($("msgErr"), error.message);
+    return;
+  }
 
-  $("jumlah").value="";
-  $("catatan").value="";
-  loadData();
+  $("jumlah").value = "";
+  $("catatan").value = "";
+  await loadData();
 }
 
 /* ========= EVENTS (AMAN DI HP) ========= */
 function bindTap(id, fn){
-  const el=$(id);
-  if(!el) return;
-  el.addEventListener("click",(e)=>{e.preventDefault();fn();},{passive:false});
-  el.addEventListener("touchend",(e)=>{e.preventDefault();fn();},{passive:false});
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener("click", (e)=>{ e.preventDefault(); fn(); }, { passive:false });
+  el.addEventListener("touchend", (e)=>{ e.preventDefault(); fn(); }, { passive:false });
 }
-document.addEventListener("DOMContentLoaded",()=>{
+
+document.addEventListener("DOMContentLoaded", ()=>{
   bindTap("btnDaftar", register);
   bindTap("btnLogin", loginUser);
   bindTap("btnLogout", logout);
+
   bindTap("btnSimpan", add);
-  bindTap("btnMasuk", ()=>{$("jenis").value="Uang Masuk";});
-  bindTap("btnKeluar", ()=>{$("jenis").value="Uang Keluar";});
+  bindTap("btnMasuk", ()=>{ $("jenis").value = "Uang Masuk"; });
+  bindTap("btnKeluar", ()=>{ $("jenis").value = "Uang Keluar"; });
 });
 
-sb.auth.getSession().then(r=>r.data.session && start());
+// auto login
+sb.auth.getSession().then(r => { if (r.data.session) start(); });
 </script>
 </body>
 </html>
