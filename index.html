@@ -1,80 +1,77 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tabungan • Grafik</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tabungan</title>
 
-  <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="https://zxfathn.github.io/tabungan-web/style.css" />
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="https://zxfathn.github.io/tabungan-web/style.css">
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Chart.js -->
+  <!-- Chart -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
+
 <header>
   <div class="wrap topbar">
-    <div class="profileHead">
-      <img id="avatar" alt="avatar" />
-      <div>
-        <div class="brand">🏦 Tabungan</div>
-        <div id="who" class="muted"></div>
-      </div>
+    <div>
+      <div class="brand">🏦 Tabungan</div>
+      <div id="who" class="muted"></div>
     </div>
-    <button id="btnLogout" class="btn" style="display:none;max-width:160px" type="button">Logout</button>
   </div>
 </header>
 
 <main class="wrap">
+
   <!-- LOGIN -->
   <section id="loginBox" class="card">
     <h3 class="mt0">Login / Daftar</h3>
-    <input id="email" placeholder="email" />
-    <input id="password" type="password" placeholder="password" />
+    <input id="email" placeholder="email">
+    <input id="password" type="password" placeholder="password">
     <div class="grid mt10">
-      <button id="btnDaftar" class="btn" type="button">Daftar</button>
-      <button id="btnLogin" class="btn" type="button">Login</button>
+      <button id="btnDaftar" class="btn">Daftar</button>
+      <button id="btnLogin" class="btn">Login</button>
     </div>
     <div id="msg" class="muted mt10"></div>
   </section>
 
   <!-- APP -->
   <section id="app" style="display:none">
-    <div class="card">
-      <h3 class="mt0">Profil</h3>
-      <input type="file" id="photo" accept="image/*" />
-      <div class="muted mt8">Upload foto (jpg/png)</div>
-    </div>
 
+    <!-- RINGKASAN -->
     <div class="grid3">
       <div class="card"><div class="muted">Saldo</div><div id="saldo" class="big">Rp 0</div></div>
       <div class="card"><div class="muted">Masuk</div><div id="masuk" class="big">Rp 0</div></div>
       <div class="card"><div class="muted">Keluar</div><div id="keluar" class="big">Rp 0</div></div>
     </div>
 
+    <!-- JENIS -->
     <div class="grid">
-      <button id="btnMasuk" class="btn-in" type="button">+ Uang Masuk</button>
-      <button id="btnKeluar" class="btn-out" type="button">- Uang Keluar</button>
+      <button id="btnMasuk" class="btn-in">+ Uang Masuk</button>
+      <button id="btnKeluar" class="btn-out">- Uang Keluar</button>
     </div>
 
+    <!-- INPUT -->
     <div class="card">
       <select id="jenis">
         <option>Uang Masuk</option>
         <option>Uang Keluar</option>
       </select>
-      <input id="jumlah" type="number" inputmode="numeric" placeholder="jumlah" class="mt10" />
-      <input id="catatan" placeholder="catatan (opsional)" class="mt10" />
-      <button id="btnSimpan" class="btn mt10" type="button">Simpan</button>
+      <input id="jumlah" type="number" placeholder="jumlah" class="mt10">
+      <input id="catatan" placeholder="catatan (opsional)" class="mt10">
+      <button id="btnSimpan" class="btn mt10">Simpan</button>
       <div id="err" class="muted mt8"></div>
     </div>
 
+    <!-- GRAFIK -->
     <div class="card">
       <div class="chartHead">
         <h3 class="mt0">Grafik Saldo</h3>
-        <select id="range" style="max-width:200px">
+        <select id="range">
           <option value="all">Semua</option>
           <option value="30s">30 Detik</option>
           <option value="15m" selected>15 Menit</option>
@@ -87,6 +84,7 @@
       <div id="hint" class="muted mt8"></div>
     </div>
 
+    <!-- RIWAYAT -->
     <div class="card">
       <h3 class="mt0">Riwayat</h3>
       <table>
@@ -94,6 +92,27 @@
         <tbody id="list"></tbody>
       </table>
     </div>
+
+    <!-- MENU PROFIL + FOTO + LOGOUT -->
+    <div class="card">
+      <h3 class="mt0">Profil</h3>
+
+      <div class="profileBox">
+        <img id="avatar" alt="avatar">
+        <div class="profileInfo">
+          <div id="profileName" class="profileName"></div>
+          <div id="profileEmail" class="muted"></div>
+        </div>
+      </div>
+
+      <input type="file" id="photo" accept="image/*" class="mt10">
+      <div class="muted mt8">Upload / ganti foto profil</div>
+
+      <div class="profileMenu">
+        <button id="btnLogout" class="profileLogout">🚪 Logout</button>
+      </div>
+    </div>
+
   </section>
 </main>
 
