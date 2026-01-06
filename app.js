@@ -1,4 +1,3 @@
-/* ====== SUPABASE ====== */
 const SUPABASE_URL = "https://hcfoqyekemhwnbbwdvae.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZm9xeWVrZW1od25iYndkdmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzA4NjIsImV4cCI6MjA4MzI0Njg2Mn0.S_kSysDrO_TfwUa4uOk-lUrW_OBf4tV6QJPsCO0iS0Y";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -23,41 +22,10 @@ function rangeMs(r){
   if (r === "30s") return 30_000;
   if (r === "15m") return 15 * 60_000;
   if (r === "1d")  return 24 * 60 * 60_000;
-  return null; // all
+  return null;
 }
 
-/* ====== REGISTER CHART + FINANCIAL (INI FIX ERROR "candlestick not registered") ====== */
-(function registerAll(){
-  if (Chart?.registerables) Chart.register(...Chart.registerables);
-  if (window.ChartZoom) Chart.register(window.ChartZoom);
-
-  // chartjs-chart-financial UMD bisa muncul dengan nama berbeda, jadi kita cari yang ada
-  const fin =
-    window.ChartFinancial ||
-    window["chartjs-chart-financial"] ||
-    window.chartjsChartFinancial ||
-    window.Financial;
-
-  const regs = [];
-  const pick = (obj, key) => (obj && obj[key]) ? obj[key] : null;
-
-  const CandlestickController = pick(fin,"CandlestickController") || window.CandlestickController;
-  const CandlestickElement    = pick(fin,"CandlestickElement")    || window.CandlestickElement;
-  const OhlcController        = pick(fin,"OhlcController")        || window.OhlcController;
-  const OhlcElement           = pick(fin,"OhlcElement")           || window.OhlcElement;
-  const FinancialScale        = pick(fin,"FinancialScale")        || window.FinancialScale;
-
-  [CandlestickController, CandlestickElement, OhlcController, OhlcElement, FinancialScale]
-    .forEach(x => { if (x) regs.push(x); });
-
-  if (regs.length) {
-    Chart.register(...regs);
-  } else {
-    console.error("Plugin financial tidak ter-register. Pastikan urutan script di index.html benar.");
-  }
-})();
-
-/* ====== AUTH ====== */
+/* AUTH */
 async function daftar(){
   showMsg("Mendaftar...");
   const { error } = await sb.auth.signUp({
@@ -93,10 +61,9 @@ async function start(){
   await load();
 }
 
-/* ====== DATA ====== */
+/* DATA */
 async function load(){
   showErr("");
-
   const { data:{user} } = await sb.auth.getUser();
   if (!user) return;
 
@@ -121,12 +88,11 @@ async function load(){
     return `<tr><td>${t}</td><td>${x.jenis}</td><td>${rp(x.jumlah)}</td></tr>`;
   }).join("");
 
-  draw();
+  drawLine();
 }
 
 async function simpan(){
   showErr("");
-
   const j = Number($("jumlah").value || 0);
   if (!j || j <= 0){ showErr("Jumlah harus > 0"); return; }
 
@@ -141,8 +107,8 @@ async function simpan(){
 
   const ins = await sb.from("transaksi").insert([{
     user_id: user.id,
-    waktu: nowIso,
-    tanggal: nowIso, // fallback
+    waktu: nowIso,      // kalau belum ada kolom waktu, bikin di supabase
+    tanggal: nowIso,
     jenis: $("jenis").value,
     jumlah: j,
     catatan: $("catatan").value || ""
@@ -155,100 +121,74 @@ async function simpan(){
   await load();
 }
 
-/* ====== CANDLE: 1 TRANSAKSI = 1 CANDLE ====== */
-function buildCandlesPerTx(){
-  const mode = $("mode").value;
+/* GRAFIK GARIS SALDO */
+function buildSaldoSeries(){
   const rg = $("range").value;
   const rm = rangeMs(rg);
   const now = Date.now();
 
   let saldo = 0;
-  const out = [];
+  const labels = [];
+  const dataSaldo = [];
 
   const asc = [...rows].slice().sort((a,b)=> (parseTs(a) ?? 0) - (parseTs(b) ?? 0));
 
   for (const r of asc){
     const t = parseTs(r);
-    const o = saldo;
-
     const j = Number(r.jumlah || 0);
     saldo += (r.jenis === "Uang Masuk") ? j : -j;
-    const c = saldo;
-
-    const okMode =
-      mode === "all" ||
-      (mode === "masuk" && r.jenis === "Uang Masuk") ||
-      (mode === "keluar" && r.jenis === "Uang Keluar");
 
     const okRange = !rm || (t !== null && t >= (now - rm));
-
-    if (okMode && okRange){
-      out.push({
-        x: r.waktu || r.tanggal || "-",
-        o,
-        h: Math.max(o,c),
-        l: Math.min(o,c),
-        c
-      });
+    if (okRange){
+      labels.push(r.waktu || r.tanggal || "-");
+      dataSaldo.push(saldo);
     }
   }
 
-  return out.slice(-250);
+  // biar ringan di HP
+  if (labels.length > 250){
+    const cut = labels.length - 250;
+    return { labels: labels.slice(cut), dataSaldo: dataSaldo.slice(cut) };
+  }
+  return { labels, dataSaldo };
 }
 
-function draw(){
-  const d = buildCandlesPerTx();
-  $("hint").innerText = d.length ? `Candle: ${d.length}` : "Tidak ada transaksi di range ini.";
+function drawLine(){
+  const { labels, dataSaldo } = buildSaldoSeries();
+  $("hint").innerText = labels.length ? `Titik: ${labels.length}` : "Tidak ada data di range ini.";
 
   const canvas = $("chart");
-
-  // ✅ FIX "Canvas already in use"
   const old = Chart.getChart(canvas);
   if (old) old.destroy();
   if (chart) { chart.destroy(); chart = null; }
+  if (!labels.length) return;
 
-  if (!d.length) return;
-
-  const ctx = canvas.getContext("2d");
-  chart = new Chart(ctx, {
-    type: "candlestick",
-    data: {
-      datasets: [{
-        data: d,
-
-        // ✅ WARNA HIJAU / MERAH BIAR KELIHATAN
-        color: { up:"#22c55e", down:"#ef4444", unchanged:"#9ca3af" },
-        borderColor: { up:"#22c55e", down:"#ef4444", unchanged:"#9ca3af" },
-        wickColor: { up:"#22c55e", down:"#ef4444", unchanged:"#9ca3af" },
-        backgroundColor: {
-          up:"rgba(34,197,94,0.9)",
-          down:"rgba(239,68,68,0.9)",
-          unchanged:"rgba(156,163,175,0.9)"
-        },
-        borderWidth: 2,
-        barThickness: 12
+  chart = new Chart(canvas.getContext("2d"),{
+    type:"line",
+    data:{
+      labels,
+      datasets:[{
+        label:"Saldo",
+        data:dataSaldo,
+        borderWidth:3,
+        pointRadius:2,
+        tension:0.2
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      plugins: {
-        legend: { display:false },
-        zoom: {
-          pan: { enabled:true, mode:"x" },
-          zoom: { wheel:{enabled:true}, pinch:{enabled:true}, mode:"x" }
-        }
-      },
-      scales: {
-        x: { type:"category", ticks:{ maxTicksLimit:6, color:"#b7bcc6" }, grid:{ color:"rgba(255,255,255,.08)" } },
-        y: { ticks:{ color:"#b7bcc6", callback:(v)=>rp(v) }, grid:{ color:"rgba(255,255,255,.08)" } }
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      animation:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ ticks:{ maxTicksLimit:6 } },
+        y:{ ticks:{ callback:(v)=>rp(v) } }
       }
     }
   });
 }
 
-/* ====== CEK DATA WAKTU ====== */
+/* CEK */
 function cek(){
   const rg = $("range").value;
   const rm = rangeMs(rg);
@@ -268,13 +208,13 @@ function cek(){
 
   alert(
     `Total transaksi: ${total}\n` +
-    `Ada waktu (kolom waktu terisi): ${punyaWaktu}\n` +
+    `Ada waktu: ${punyaWaktu}\n` +
     `Masuk range (${rg}): ${masukRange}\n\n` +
     `Contoh waktu:\n${contoh}`
   );
 }
 
-/* ====== EVENTS ====== */
+/* EVENTS */
 function bindTap(id, fn){
   const el = $(id);
   if (!el) return;
@@ -291,8 +231,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   bindTap("btnMasuk", ()=>{ $("jenis").value = "Uang Masuk"; });
   bindTap("btnKeluar", ()=>{ $("jenis").value = "Uang Keluar"; });
 
-  $("mode").addEventListener("change", draw);
-  $("range").addEventListener("change", draw);
+  $("range").addEventListener("change", drawLine);
 });
 
 sb.auth.getSession().then(r => { if (r.data.session) start(); });
