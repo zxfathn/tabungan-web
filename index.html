@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tabungan • Online</title>
+<title>Tabungan • Candlestick TF</title>
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -37,7 +37,6 @@ body{
   color:var(--txt);
 }
 button{touch-action:manipulation}
-
 header{
   position:sticky;top:0;z-index:10;
   background:#0b0c10cc;
@@ -88,7 +87,7 @@ button[disabled]{opacity:.5;cursor:not-allowed}
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 
-.chartWrap{height:340px}
+.chartWrap{height:360px}
 @media(max-width:600px){.chartWrap{height:240px}}
 
 .flash{margin-top:10px;padding:10px;border-radius:12px;background:#3b82f622;display:none}
@@ -100,7 +99,7 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 <header>
   <div class="wrap top">
     <div>
-      <div class="brand">🏦 Tabungan </div>
+      <div class="brand">🏦 Tabungan • Candlestick</div>
       <div id="who" class="muted"></div>
     </div>
     <div style="min-width:140px">
@@ -149,23 +148,32 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
     </div>
 
     <div class="card">
-      <h3>Candlestick Saldo </h3>
-      <div class="chartWrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <h3 style="margin:0">Candlestick Saldo</h3>
+        <select id="tf" style="max-width:200px">
+          <option value="30s">30 detik</option>
+          <option value="15m" selected>15 menit</option>
+          <option value="1d">1 hari</option>
+        </select>
+      </div>
+
+      <div class="chartWrap" style="margin-top:10px">
         <canvas id="chartCandle"></canvas>
       </div>
-      <div class="muted">Zoom: pinch (HP) / scroll (laptop). Geser: drag.</div>
+
+      <div class="muted" style="margin-top:6px">Zoom: pinch (HP) / scroll (laptop). Geser: drag.</div>
       <div id="chartHint" class="muted" style="margin-top:6px"></div>
     </div>
 
     <div class="card">
       <h3>Riwayat</h3>
       <table>
-        <thead><tr><th>Tanggal</th><th>Jenis</th><th>Jumlah</th></tr></thead>
+        <thead><tr><th>Waktu</th><th>Jenis</th><th>Jumlah</th></tr></thead>
         <tbody id="list"></tbody>
       </table>
     </div>
-  </div>
 
+  </div>
 </div>
 
 <script>
@@ -176,7 +184,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const $ = (id)=>document.getElementById(id);
 const rupiah = (n)=>"Rp "+Number(n||0).toLocaleString("id-ID");
-const today = ()=>new Date().toISOString().slice(0,10);
 
 let cacheRows = [];
 let chart = null;
@@ -186,16 +193,13 @@ function show(el, text){
   el.textContent = text || "";
 }
 
-/* ========= REGISTER ALL (BIAR PLUGIN KE-DETEK) ========= */
+/* ========= REGISTER (BIAR CANDLESTICK KEBACA) ========= */
 (function registerEverything(){
   if (Chart?.registerables) Chart.register(...Chart.registerables);
-
-  // UMD: zoom biasanya expose window.ChartZoom
   if (window.ChartZoom) Chart.register(window.ChartZoom);
 
-  // beberapa build financial auto-register; kalau tidak, tetap aman
-  const fin = window["chartjs-chart-financial"];
-  if (fin) {
+  const fin = window.ChartFinancial || window["chartjs-chart-financial"];
+  if (fin){
     ["CandlestickController","CandlestickElement","OhlcController","OhlcElement","FinancialScale"].forEach(k=>{
       if (fin[k]) Chart.register(fin[k]);
     });
@@ -235,57 +239,87 @@ async function start(){
   await loadData();
 }
 
-/* ========= CANDLESTICK (PAKAI CATEGORY BIAR PASTI MUNCUL) ========= */
-function buildCandles(rows){
-  // urut lama -> baru
-  const asc = [...rows].sort((a,b)=> (a.tanggal||"").localeCompare(b.tanggal||""));
+/* ========= TIMEFRAME CANDLE ========= */
+function parseTs(r){
+  const s = String(r.tanggal || "").trim();
+  const t = Date.parse(s);
+  if (!Number.isNaN(t)) return t;
+
+  // fallback kalau masih YYYY-MM-DD
+  const t2 = Date.parse(s + "T00:00:00Z");
+  return Number.isNaN(t2) ? null : t2;
+}
+
+function formatLabel(ms, tf){
+  const d = new Date(ms);
+  const pad = (n)=> String(n).padStart(2,"0");
+  if (tf === "30s") return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  if (tf === "15m") return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function buildCandles(rows, tf){
+  const intervalMs =
+    tf === "30s" ? 30_000 :
+    tf === "15m" ? 15 * 60_000 :
+    24 * 60 * 60_000;
+
+  const asc = [...rows]
+    .map(r => ({...r, _ts: parseTs(r)}))
+    .filter(r => r._ts !== null)
+    .sort((a,b)=> a._ts - b._ts);
+
   let saldo = 0;
-  const map = new Map(); // YYYY-MM-DD -> {o,h,l,c}
+  const map = new Map(); // bucketMs -> {o,h,l,c}
 
   for (const r of asc){
-    const tgl = (r.tanggal || "").slice(0,10);
-    if (!tgl) continue;
+    const bucket = Math.floor(r._ts / intervalMs) * intervalMs;
 
-    if (!map.has(tgl)) map.set(tgl, { o: saldo, h: saldo, l: saldo, c: saldo });
+    if (!map.has(bucket)) {
+      map.set(bucket, { o: saldo, h: saldo, l: saldo, c: saldo });
+    }
 
     const j = Number(r.jumlah || 0);
     saldo += (r.jenis === "Uang Masuk") ? j : -j;
 
-    const d = map.get(tgl);
+    const d = map.get(bucket);
     d.c = saldo;
     d.h = Math.max(d.h, saldo);
     d.l = Math.min(d.l, saldo);
   }
 
-  // {x:'YYYY-MM-DD', o,h,l,c}
-  return [...map.entries()].map(([x,v]) => ({ x, o:v.o, h:v.h, l:v.l, c:v.c })).slice(-150);
+  const out = [...map.entries()].map(([bucket, v]) => ({
+    x: formatLabel(bucket, tf),
+    o: v.o, h: v.h, l: v.l, c: v.c
+  }));
+
+  const limit =
+    tf === "30s" ? 140 :   // ~70 menit
+    tf === "15m" ? 220 :   // ~2+ hari
+    200;                   // harian
+  return out.slice(-limit);
 }
 
 function renderCandle(rows){
+  const tf = $("tf")?.value || "15m";
   const canvas = $("chartCandle");
   if (!canvas) return;
 
   const ctx = canvas.getContext("2d");
   if (chart) chart.destroy();
 
-  const candles = buildCandles(rows);
+  const candles = buildCandles(rows, tf);
 
   $("chartHint").textContent =
     candles.length
-      ? `Menampilkan ${candles.length} candle (per hari).`
-      : "Belum ada data untuk chart.";
+      ? `Timeframe: ${tf} • Candle: ${candles.length}`
+      : "Belum ada data waktu untuk timeframe ini. (Coba input transaksi beberapa kali)";
 
-  // kalau kosong, jangan bikin chart (biar nggak error)
   if (!candles.length) return;
 
   chart = new Chart(ctx, {
     type: "candlestick",
-    data: {
-      datasets: [{
-        label: "Saldo",
-        data: candles
-      }]
-    },
+    data: { datasets: [{ data: candles }] },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -306,8 +340,8 @@ function renderCandle(rows){
         }
       },
       scales: {
-        x: { type: "category", ticks: { maxTicksLimit: 6, color: "#b7bcc6" }, grid: { color:"rgba(255,255,255,.06)" } },
-        y: { ticks: { color: "#b7bcc6", callback: (v)=> rupiah(v) }, grid: { color:"rgba(255,255,255,.06)" } }
+        x: { type: "category", ticks: { maxTicksLimit: 6, color:"#b7bcc6" }, grid:{ color:"rgba(255,255,255,.06)" } },
+        y: { ticks: { color:"#b7bcc6", callback: (v)=> rupiah(v) }, grid:{ color:"rgba(255,255,255,.06)" } }
       }
     }
   });
@@ -320,7 +354,7 @@ async function loadData(){
   const { data:{user} } = await sb.auth.getUser();
   if (!user) return;
 
-  // ✅ 1 akun sama di HP & laptop
+  // ✅ 1 akun = sama di HP & laptop
   const { data, error } = await sb
     .from("transaksi")
     .select("*")
@@ -347,8 +381,9 @@ async function loadData(){
     list.innerHTML = `<tr><td colspan="3">Belum ada transaksi</td></tr>`;
   } else {
     cacheRows.forEach(d=>{
+      const t = String(d.tanggal || "").replace("T"," ").slice(0,19);
       list.innerHTML += `<tr>
-        <td>${(d.tanggal||"").slice(0,10)}</td>
+        <td>${t || "-"}</td>
         <td>${d.jenis}</td>
         <td>${rupiah(d.jumlah)}</td>
       </tr>`;
@@ -378,16 +413,17 @@ async function add(){
     return;
   }
 
+  // 🔥 INI KUNCI TIMEFRAME: simpan datetime (detik)
   const { error } = await sb.from("transaksi").insert([{
     user_id: user.id,
-    tanggal: today(),
+    tanggal: new Date().toISOString(),  // harus timestamptz / text
     jenis,
     jumlah: j,
     catatan: $("catatan").value
   }]);
 
   if (error){
-    show($("msgErr"), error.message);
+    show($("msgErr"), error.message + " (Jika error soal tipe tanggal, ubah kolom 'tanggal' jadi timestamptz/text)");
     return;
   }
 
@@ -412,6 +448,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
   bindTap("btnSimpan", add);
   bindTap("btnMasuk", ()=>{ $("jenis").value = "Uang Masuk"; });
   bindTap("btnKeluar", ()=>{ $("jenis").value = "Uang Keluar"; });
+
+  $("tf")?.addEventListener("change", ()=>renderCandle(cacheRows));
 });
 
 // auto login
