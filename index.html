@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tabungan • Candlestick TF</title>
+<title>Tabungan • Candle per Transaksi</title>
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -14,7 +14,7 @@
 <!-- Candlestick (financial) -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@3"></script>
 
-<!-- Zoom (pinch / scroll) -->
+<!-- Zoom -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
 
 <style>
@@ -99,7 +99,7 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 <header>
   <div class="wrap top">
     <div>
-      <div class="brand">🏦 Tabungan • Candlestick</div>
+      <div class="brand">🏦 Tabungan • Candle per Transaksi</div>
       <div id="who" class="muted"></div>
     </div>
     <div style="min-width:140px">
@@ -149,12 +149,20 @@ th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-        <h3 style="margin:0">Candlestick Saldo</h3>
-        <select id="tf" style="max-width:200px">
-          <option value="30s">30 detik</option>
-          <option value="15m" selected>15 menit</option>
-          <option value="1d">1 hari</option>
-        </select>
+        <h3 style="margin:0">Candlestick (1 transaksi = 1 candle)</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <select id="mode" style="max-width:200px">
+            <option value="all" selected>Semua Transaksi</option>
+            <option value="masuk">Uang Masuk</option>
+            <option value="keluar">Uang Keluar</option>
+          </select>
+          <select id="range" style="max-width:200px">
+            <option value="30s">Range: 30 detik</option>
+            <option value="15m" selected>Range: 15 menit</option>
+            <option value="1d">Range: 1 hari</option>
+            <option value="all">Range: Semua</option>
+          </select>
+        </div>
       </div>
 
       <div class="chartWrap" style="margin-top:10px">
@@ -193,11 +201,12 @@ function show(el, text){
   el.textContent = text || "";
 }
 
-/* ========= REGISTER (BIAR CANDLESTICK KEBACA) ========= */
+/* ========= REGISTER ========= */
 (function registerEverything(){
   if (Chart?.registerables) Chart.register(...Chart.registerables);
   if (window.ChartZoom) Chart.register(window.ChartZoom);
 
+  // kadang financial plugin auto-register, tapi ini bikin lebih aman
   const fin = window.ChartFinancial || window["chartjs-chart-financial"];
   if (fin){
     ["CandlestickController","CandlestickElement","OhlcController","OhlcElement","FinancialScale"].forEach(k=>{
@@ -205,6 +214,27 @@ function show(el, text){
     });
   }
 })();
+
+/* ========= TIME HELPERS ========= */
+function parseTs(v){
+  const s = String(v || "").trim();
+  const t = Date.parse(s);
+  if (!Number.isNaN(t)) return t;
+  // fallback kalau ada yang masih YYYY-MM-DD
+  const t2 = Date.parse(s + "T00:00:00Z");
+  return Number.isNaN(t2) ? null : t2;
+}
+function pad(n){ return String(n).padStart(2,"0"); }
+function formatTS(ms){
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function rangeToMs(range){
+  if (range === "30s") return 30_000;
+  if (range === "15m") return 15 * 60_000;
+  if (range === "1d")  return 24 * 60 * 60_000;
+  return null;
+}
 
 /* ========= AUTH ========= */
 async function register(){
@@ -239,87 +269,81 @@ async function start(){
   await loadData();
 }
 
-/* ========= TIMEFRAME CANDLE ========= */
-function parseTs(r){
-  const s = String(r.tanggal || "").trim();
-  const t = Date.parse(s);
-  if (!Number.isNaN(t)) return t;
+/* ========= CANDLE PER TRANSAKSI ========= */
+function buildCandlesPerTx(rows, mode, range){
+  const rangeMs = rangeToMs(range);
+  const now = Date.now();
 
-  // fallback kalau masih YYYY-MM-DD
-  const t2 = Date.parse(s + "T00:00:00Z");
-  return Number.isNaN(t2) ? null : t2;
-}
-
-function formatLabel(ms, tf){
-  const d = new Date(ms);
-  const pad = (n)=> String(n).padStart(2,"0");
-  if (tf === "30s") return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  if (tf === "15m") return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
-
-function buildCandles(rows, tf){
-  const intervalMs =
-    tf === "30s" ? 30_000 :
-    tf === "15m" ? 15 * 60_000 :
-    24 * 60 * 60_000;
-
+  // urut lama -> baru (supaya saldo jalan benar)
   const asc = [...rows]
-    .map(r => ({...r, _ts: parseTs(r)}))
+    .map(r => ({...r, _ts: parseTs(r.tanggal)}))
     .filter(r => r._ts !== null)
     .sort((a,b)=> a._ts - b._ts);
 
   let saldo = 0;
-  const map = new Map(); // bucketMs -> {o,h,l,c}
+  const candles = [];
 
   for (const r of asc){
-    const bucket = Math.floor(r._ts / intervalMs) * intervalMs;
-
-    if (!map.has(bucket)) {
-      map.set(bucket, { o: saldo, h: saldo, l: saldo, c: saldo });
-    }
-
+    const jenis = r.jenis;
     const j = Number(r.jumlah || 0);
-    saldo += (r.jenis === "Uang Masuk") ? j : -j;
+    const ts = r._ts;
 
-    const d = map.get(bucket);
-    d.c = saldo;
-    d.h = Math.max(d.h, saldo);
-    d.l = Math.min(d.l, saldo);
+    // saldo sebelum transaksi
+    const o = saldo;
+
+    // apply transaksi → saldo sesudah
+    saldo = saldo + (jenis === "Uang Masuk" ? j : -j);
+    const c = saldo;
+
+    // filter mode (tetap update saldo di belakang layar)
+    const okMode =
+      mode === "all" ||
+      (mode === "masuk" && jenis === "Uang Masuk") ||
+      (mode === "keluar" && jenis === "Uang Keluar");
+
+    // filter range (berdasarkan waktu transaksi)
+    const okRange = !rangeMs || (ts >= (now - rangeMs));
+
+    if (okMode && okRange){
+      const h = Math.max(o, c);
+      const l = Math.min(o, c);
+      candles.push({
+        x: formatTS(ts), // label category
+        o, h, l, c
+      });
+    }
   }
 
-  const out = [...map.entries()].map(([bucket, v]) => ({
-    x: formatLabel(bucket, tf),
-    o: v.o, h: v.h, l: v.l, c: v.c
-  }));
-
-  const limit =
-    tf === "30s" ? 140 :   // ~70 menit
-    tf === "15m" ? 220 :   // ~2+ hari
-    200;                   // harian
-  return out.slice(-limit);
+  // batasi biar HP ringan
+  return candles.slice(-200);
 }
 
-function renderCandle(rows){
-  const tf = $("tf")?.value || "15m";
+function renderCandle(){
+  const mode = $("mode")?.value || "all";
+  const range = $("range")?.value || "15m";
+
   const canvas = $("chartCandle");
   if (!canvas) return;
 
   const ctx = canvas.getContext("2d");
   if (chart) chart.destroy();
 
-  const candles = buildCandles(rows, tf);
+  const candles = buildCandlesPerTx(cacheRows, mode, range);
+
+  const modeLabel =
+    mode === "masuk" ? "Uang Masuk" :
+    mode === "keluar" ? "Uang Keluar" : "Semua";
 
   $("chartHint").textContent =
     candles.length
-      ? `Timeframe: ${tf} • Candle: ${candles.length}`
-      : "Belum ada data waktu untuk timeframe ini. (Coba input transaksi beberapa kali)";
+      ? `Mode: ${modeLabel} • ${$("range").options[$("range").selectedIndex].text} • Candle: ${candles.length}`
+      : "Tidak ada transaksi di range ini (atau belum ada waktu/datetime).";
 
   if (!candles.length) return;
 
   chart = new Chart(ctx, {
     type: "candlestick",
-    data: { datasets: [{ data: candles }] },
+    data: { datasets: [{ label: modeLabel, data: candles }] },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -330,7 +354,7 @@ function renderCandle(rows){
           callbacks: {
             label: (c) => {
               const v = c.raw;
-              return `O ${rupiah(v.o)}  H ${rupiah(v.h)}  L ${rupiah(v.l)}  C ${rupiah(v.c)}`;
+              return `${modeLabel} — O ${rupiah(v.o)}  H ${rupiah(v.h)}  L ${rupiah(v.l)}  C ${rupiah(v.c)}`;
             }
           }
         },
@@ -340,7 +364,7 @@ function renderCandle(rows){
         }
       },
       scales: {
-        x: { type: "category", ticks: { maxTicksLimit: 6, color:"#b7bcc6" }, grid:{ color:"rgba(255,255,255,.06)" } },
+        x: { type: "category", ticks: { maxTicksLimit: 5, color:"#b7bcc6" }, grid:{ color:"rgba(255,255,255,.06)" } },
         y: { ticks: { color:"#b7bcc6", callback: (v)=> rupiah(v) }, grid:{ color:"rgba(255,255,255,.06)" } }
       }
     }
@@ -354,7 +378,6 @@ async function loadData(){
   const { data:{user} } = await sb.auth.getUser();
   if (!user) return;
 
-  // ✅ 1 akun = sama di HP & laptop
   const { data, error } = await sb
     .from("transaksi")
     .select("*")
@@ -381,16 +404,17 @@ async function loadData(){
     list.innerHTML = `<tr><td colspan="3">Belum ada transaksi</td></tr>`;
   } else {
     cacheRows.forEach(d=>{
-      const t = String(d.tanggal || "").replace("T"," ").slice(0,19);
+      const ts = parseTs(d.tanggal);
+      const t = ts ? formatTS(ts) : String(d.tanggal || "-");
       list.innerHTML += `<tr>
-        <td>${t || "-"}</td>
+        <td>${t}</td>
         <td>${d.jenis}</td>
         <td>${rupiah(d.jumlah)}</td>
       </tr>`;
     });
   }
 
-  renderCandle(cacheRows);
+  renderCandle();
 }
 
 async function add(){
@@ -413,17 +437,17 @@ async function add(){
     return;
   }
 
-  // 🔥 INI KUNCI TIMEFRAME: simpan datetime (detik)
+  // SIMPAN datetime agar range 30s/15m/1d jalan
   const { error } = await sb.from("transaksi").insert([{
     user_id: user.id,
-    tanggal: new Date().toISOString(),  // harus timestamptz / text
+    tanggal: new Date().toISOString(), // harus timestamptz / text
     jenis,
     jumlah: j,
     catatan: $("catatan").value
   }]);
 
   if (error){
-    show($("msgErr"), error.message + " (Jika error soal tipe tanggal, ubah kolom 'tanggal' jadi timestamptz/text)");
+    show($("msgErr"), error.message + " (Jika error tipe tanggal: ubah kolom 'tanggal' jadi timestamptz/text)");
     return;
   }
 
@@ -449,7 +473,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
   bindTap("btnMasuk", ()=>{ $("jenis").value = "Uang Masuk"; });
   bindTap("btnKeluar", ()=>{ $("jenis").value = "Uang Keluar"; });
 
-  $("tf")?.addEventListener("change", ()=>renderCandle(cacheRows));
+  $("mode")?.addEventListener("change", renderCandle);
+  $("range")?.addEventListener("change", renderCandle);
 });
 
 // auto login
