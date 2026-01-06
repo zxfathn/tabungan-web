@@ -20,7 +20,7 @@ body{
 .wrap{max-width:1000px;margin:auto;padding:16px}
 header{position:sticky;top:0;background:rgba(5,8,20,.8);
   backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.topbar{display:flex;justify-content:space-between}
+.topbar{display:flex;justify-content:space-between;align-items:center}
 .brand{font-weight:900}
 .muted{color:var(--muted);font-size:12px}
 
@@ -45,9 +45,6 @@ input,select{
   color:var(--text);
 }
 
-select.jenis-in{background:rgba(34,197,94,.15)}
-select.jenis-out{background:rgba(239,68,68,.15)}
-
 button{
   width:100%;padding:12px;border-radius:14px;
   border:none;font-weight:800;cursor:pointer;
@@ -57,33 +54,45 @@ button{
 .btn-in{background:#22c55e;color:#06210f}
 .btn-out{background:#ef4444;color:#2b0404}
 
-.active-in{outline:2px solid rgba(34,197,94,.6)}
-.active-out{outline:2px solid rgba(239,68,68,.6)}
-
 .chartWrap{height:300px;margin-top:10px}
+
 table{width:100%;border-collapse:collapse;font-size:13px}
 td,th{padding:8px;border-bottom:1px solid var(--line)}
 
-.profileBox{
-  display:flex;align-items:center;gap:14px;
+.menuWrap{position:relative}
+.menuBtn{
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  font-size:22px;
+  width:44px;height:44px;
+  border-radius:12px;
 }
-#avatar{
-  width:64px;height:64px;border-radius:50%;
+
+.menuDrop{
+  position:absolute;right:0;top:54px;
+  width:260px;
+  background:linear-gradient(180deg,rgba(15,18,30,.95),rgba(10,12,22,.95));
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  padding:14px;
+  display:none;z-index:20;
+}
+.menuDrop.show{display:block}
+
+.menuProfile{display:flex;align-items:center;gap:12px}
+.menuProfile img{
+  width:48px;height:48px;border-radius:50%;
   object-fit:cover;border:2px solid rgba(255,255,255,.35);
   display:none;
 }
 .profileName{font-weight:900}
 
-.profileMenu{
-  margin-top:14px;padding-top:12px;
-  border-top:1px solid var(--line);
-}
-.profileLogout{
+.menuLogout{
+  margin-top:12px;
   background:rgba(239,68,68,.18);
   color:#fecaca;
-  border:1px solid rgba(239,68,68,.4);
+  border:1px solid rgba(239,68,68,.35);
 }
-.profileLogout:hover{background:rgba(239,68,68,.28)}
+.menuLogout:hover{background:rgba(239,68,68,.28)}
 
-.mt0{margin-top:0}.mt8{margin-top:8px}.mt10{margin-top:10px}
-.chartHead{display:flex;justify-content:space-between;align-items:center}
+.mt0{margin-top:0}.mt10{margin-top:10px}
