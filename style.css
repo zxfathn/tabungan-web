@@ -19,6 +19,15 @@ body{
 header{position:sticky;top:0;background:rgba(5,8,20,.8);
   backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .topbar{display:flex;justify-content:space-between;align-items:center}
+
+/* USER HEADER */
+.userBox{display:flex;align-items:center;gap:10px}
+.avatarHeader{
+  width:38px;height:38px;border-radius:50%;
+  object-fit:cover;border:2px solid rgba(255,255,255,.35);
+  display:none;
+}
+
 .brand{font-weight:900}
 .muted{color:var(--muted);font-size:12px}
 
@@ -34,29 +43,38 @@ header{position:sticky;top:0;background:rgba(5,8,20,.8);
 
 .big{font-size:26px;font-weight:900}
 
+/* INPUT & SELECT */
 input,select{
   width:100%;padding:12px;border-radius:14px;
   border:1px solid rgba(255,255,255,.18);
   background:linear-gradient(180deg,rgba(30,41,59,.75),rgba(15,23,42,.85));
-  color:#e5e7eb;transition:all .2s ease;
+  color:#e5e7eb;
 }
 
-button{
-  width:100%;padding:12px;border-radius:14px;
-  border:none;font-weight:800;cursor:pointer;
+/* SELECT SERASI */
+select.jenis-in{
+  border-color:rgba(34,197,94,.6);
+  background:linear-gradient(180deg,rgba(34,197,94,.25),rgba(6,78,59,.35));
 }
+select.jenis-out{
+  border-color:rgba(239,68,68,.6);
+  background:linear-gradient(180deg,rgba(239,68,68,.25),rgba(127,29,29,.35));
+}
+
+/* BUTTON */
+button{
+  border:none;border-radius:14px;
+  font-weight:800;cursor:pointer;
+}
+.small{padding:10px 14px;font-size:14px}
 
 .btn{background:rgba(255,255,255,.12);color:var(--text)}
 .btn-in{background:#22c55e;color:#06210f}
 .btn-out{background:#ef4444;color:#2b0404}
 
 .chartWrap{height:300px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-td,th{padding:8px;border-bottom:1px solid var(--line)}
 
-.mt0{margin-top:0}.mt8{margin-top:8px}.mt10{margin-top:10px}
-
-/* ===== MENU GARIS (HANYA LOGIN) ===== */
+/* MENU ☰ */
 .menuWrap{position:relative;z-index:9999}
 .menuBtn{
   background:rgba(255,255,255,.12);
@@ -70,37 +88,24 @@ td,th{padding:8px;border-bottom:1px solid var(--line)}
   border-radius:16px;padding:14px;display:none;
 }
 .menuDrop.show{display:block}
-.menuProfile{display:flex;align-items:center;gap:12px}
+
+.menuProfile{display:flex;gap:12px;align-items:center}
 .menuProfile img{
-  width:48px;height:48px;border-radius:50%;
+  width:46px;height:46px;border-radius:50%;
   object-fit:cover;border:2px solid rgba(255,255,255,.35);display:none;
 }
-.profileName{font-weight:900}
 
-/* Upload button keren */
+/* Upload */
 .uploadBtn{
-  margin-top:12px;width:100%;padding:12px;border-radius:14px;
-  font-weight:800;text-align:center;cursor:pointer;
-  color:#e0f2fe;
+  margin-top:12px;padding:10px;
+  border-radius:12px;text-align:center;
   background:linear-gradient(180deg,rgba(56,189,248,.35),rgba(14,165,233,.25));
-  border:1px solid rgba(56,189,248,.45);
-  box-shadow:0 6px 18px rgba(14,165,233,.25);
+  color:#e0f2fe;font-weight:800;cursor:pointer;
 }
-.uploadBtn:hover{transform:translateY(-1px)}
 
+/* Logout */
 .menuLogout{
-  margin-top:12px;background:rgba(239,68,68,.18);
+  margin-top:12px;padding:10px;
+  background:rgba(239,68,68,.2);
   color:#fecaca;border:1px solid rgba(239,68,68,.35);
-}
-
-/* ===== WARNA PILIHAN SERASI ===== */
-select.jenis-in{
-  border-color:rgba(34,197,94,.6);
-  background:linear-gradient(180deg,rgba(34,197,94,.25),rgba(6,78,59,.35));
-  box-shadow:0 0 0 3px rgba(34,197,94,.18);
-}
-select.jenis-out{
-  border-color:rgba(239,68,68,.6);
-  background:linear-gradient(180deg,rgba(239,68,68,.25),rgba(127,29,29,.35));
-  box-shadow:0 0 0 3px rgba(239,68,68,.18);
 }
